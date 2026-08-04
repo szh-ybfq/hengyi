@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="60 seconds" debug="false">
+    <!-- 引入spring默认颜色转换器 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <!-- 自定义彩色日志格式 -->
+    <property name="CONSOLE_COLOR_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %highlight(%-5level) %magenta(${PID:- }) %clr(---){faint} %clr([%15.15t]){faint} %cyan(%-40.40logger{39}) %clr(:){faint} %m%n%wEx"/>
+
+    <!-- 无颜色格式（生产环境使用） -->
+    <property name="CONSOLE_PLAIN_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n%wEx"/>
+
+    <!-- 开发环境：彩色控制台 -->
+    <springProfile name="dev,local">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_COLOR_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- 生产环境：关闭彩色，防止日志文件出现ANSI乱码符号 -->
+    <springProfile name="prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_PLAIN_PATTERN}</pattern>
+                <charset>UTF-8</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- 根日志级别 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- 自定义包日志级别 -->
+    <logger name="com.hengyi" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+</configuration>

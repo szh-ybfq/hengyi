@@ -6,10 +6,37 @@ spring:
     name: hengyi
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/hengyi?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: 1234
+  # redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # password: 这里直接注释，不写
+      database: 1
+      timeout: 5000ms # 最多发起到接受等待5秒，
+  # 日志颜色
+  output:
+    ansi:
+      enabled: ALWAYS
 
+# 日志配置
+logging:
+  # 全局默认级别
+  level:
+    root: info
+    # mapper层打印SQL（开发开启，线上关闭）
+    com.hengyi.mapper: debug
+    # 自己业务包默认info
+    com.hengyi: info
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+
+
+# mybatis-plus 配置
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: com.hengyi.model.entity #表 实体 起别名
@@ -19,6 +46,10 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
-      logic-delete-field: isDeleted
+      logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+jwt:
+  secret: hengYiSecretKey1234567890HengYiAdminSystem
+  expire: 86400000
