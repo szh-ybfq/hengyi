@@ -1,27 +1,33 @@
 package com.zh.hengyi.admin.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zh.hengyi.admin.model.dto.user.UserLoginDTO;
-import com.zh.hengyi.admin.model.dto.user.UserRegisterDTO;
+import com.zh.hengyi.admin.mapper.UserRoleMapper;
+import com.zh.hengyi.admin.model.dto.user.*;
+import com.zh.hengyi.admin.model.entity.UserRole;
+import com.zh.hengyi.admin.model.vo.user.UserFormVO;
 import com.zh.hengyi.admin.model.vo.user.UserLoginVO;
+import com.zh.hengyi.admin.model.vo.user.UserPageVO;
 import com.zh.hengyi.admin.service.UserService;
 import com.zh.hengyi.common.enums.user.UserEnum;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
-//import com.zh.hengyi.config.mapstruct.UserConvert;
 import com.zh.hengyi.config.sercurity.login.LoginUser;
 import com.zh.hengyi.config.sercurity.utils.jwt.JwtUtil;
-import com.zh.hengyi.mapper.UserMapper;
-import com.zh.hengyi.model.entity.User;
+import com.zh.hengyi.admin.mapper.UserMapper;
+import com.zh.hengyi.admin.model.entity.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,8 +35,12 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static com.zh.hengyi.common.constant.AuthConstant.*;
+import static com.zh.hengyi.common.result.ResultCode.ADMIN_NOT_DELETE;
 
 @Service
 @RequiredArgsConstructor // 相比@Autowired好处，见笔记
@@ -38,6 +48,7 @@ import static com.zh.hengyi.common.constant.AuthConstant.*;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     private final UserMapper userMapper;
+    private final UserRoleMapper userRoleMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
@@ -45,7 +56,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final ObjectMapper objectMapper;
 
     // 1、注册（新增插入，不用判断存在）
-    /*
+    /**
      * ⭐先查后插，易并发重复
      *      解决：判断存在校验+用户名唯一索引，索引名：uk_user_username
      * */
@@ -66,9 +77,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     // 2、登录
     @Override
     public UserLoginVO login(UserLoginDTO login) {
-        // 1 封装认证对象、调用认证
-        UsernamePasswordAuthenticationToken authToken =new UsernamePasswordAuthenticationToken(login.getUsername(),login.getPassword());
-        Authentication auth = authenticationManager.authenticate(authToken);
+        // 0 校验用户存在
+        validUsernameExist(login.getUsername());
+
+        // 1 调用认证
+        Authentication auth;
+        try {
+            auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            throw new BusinessException(ResultCode.PASSWORD_ERROR);//校验用户密码
+        } catch (LockedException e) {
+            throw new BusinessException(ResultCode.USER_STATUS_LOCKED);//校验用户密码
+        } catch (DisabledException e) {
+            throw new BusinessException(ResultCode.USER_STATUS_FORBIDDEN);//校验用户密码
+        } catch (AuthenticationException e) {
+            // 所有其他认证异常父类兜底
+            throw new BusinessException(ResultCode.USER_LOGIN_AUTH_FAIL, e.getMessage());
+        }
+
         // 2 认证成功，拿到用户信息
         LoginUser loginUser = (LoginUser) auth.getPrincipal();
         // 3 认证成功，清除密码，后续上下文不再持有
@@ -112,7 +140,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 6 实体转换
         UserLoginVO vo = BeanUtil.copyProperties(loginUser.getUser(),UserLoginVO.class);
         vo.setToken(newToken);
-        vo.setPermissionList(loginUser.getPermissions());
+//        vo.setRoleList();
+//        vo.setPermissionList();
         return vo;
     }
 
@@ -145,17 +174,100 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         SecurityContextHolder.clearContext();
     }
 
-    // 3、修改密码
+    // 4、修改密码
 
-    // 9.1 校验用户是否存在
-    public void validUsernameExist(Long id){
+    // 5、获取用户分页
+    @Override
+    public IPage<UserPageVO> getPage(UserQueryDTO dto) {
+        IPage<User> userPage = userMapper.getPage(dto);
+        return userPage.convert(user -> BeanUtil.copyProperties(user, UserPageVO.class));// convert返回IPage，里面total、pages、current、size全部自动拷贝
+    }
+
+    // 5.2 根据id获取用户
+    @Override
+    public UserFormVO getUserInfo(Long id) {
         User user = userMapper.selectById(id);
+        return BeanUtil.copyProperties(user, UserFormVO.class);
+    }
+
+    // 6、添加用户
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void add(UserAddDTO dto) {
+        validUsernameUnique(dto.getUsername());
+        System.out.println("validUsernameUnique!!!!!!");
+        User user = BeanUtil.copyProperties(dto,User.class);
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        baseMapper.insert(user);
+    }
+
+    // 7、修改用户
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void edit(UserEditDTO dto) {
+        User old = baseMapper.selectById(dto.getId());
+        if(old == null){
+            throw new BusinessException(ResultCode.USER_NOT_EXIST);
+        }
+        // 修改用户名做唯一校验，排除自己
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getUsername,dto.getUsername());
+        wrapper.ne(User::getId,dto.getId());
+        Long count = baseMapper.selectCount(wrapper);
+        if(count>0){
+            throw new BusinessException(ResultCode.USERNAME_EXIST);
+        }
+        User user = BeanUtil.copyProperties(dto,User.class);
+        baseMapper.updateById(user);
+    }
+
+    // 8、删除用户
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void removeByIdCheck(Long id) {
+        // 不能删除超级管理员id=1
+        if(id.equals(1L)){
+            throw new BusinessException(ADMIN_NOT_DELETE);
+        }
+        baseMapper.deleteById(id);
+        // 删除用户角色关联
+        userRoleMapper.deleteByUserId(id);
+    }
+
+    // 9、分配用户
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void assignRole(UserAssignRoleDTO dto) {
+        Long userId = dto.getUserId();
+        //1 删除旧关联
+        userRoleMapper.deleteByUserId(userId);
+        List<Long> roleIdList = dto.getRoleIdList();
+        if(CollUtil.isNotEmpty(roleIdList)){
+            for (Long roleId : roleIdList) {
+                UserRole ur = new UserRole();
+                ur.setUserId(userId);
+                ur.setRoleId(roleId);
+                userRoleMapper.insert(ur);
+            }
+        }
+    }
+
+    // 10、根据用户id查询已分配角色id集合
+    @Override
+    public List<Long> getRoleIdsByUserId(Long userId) {
+        if(userId == null){return Collections.emptyList();}
+        return userRoleMapper.selectRoleIdByUserId(userId);
+    }
+
+    // 11.1 校验用户是否存在
+    public void validUsernameExist(String username){
+        User user = userMapper.selectOneByUsername(username);
         if (user==null){
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
     }
 
-    // 9.2 参数校验 校验用户名重名                         使用场景：并发注册、导入批量用户、重复注册提交
+    // 11.2 参数校验 校验用户名重名                         使用场景：并发注册、导入批量用户、重复注册提交
     public void validUsernameUnique(String username){
         User user = userMapper.selectOneByUsername(username);
         if (user!=null){
@@ -163,11 +275,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
     }
 
-    // 9.5 校验用户状态是否禁用
+    // 11.5 校验用户状态是否禁用
     public void validUserStatus(User user){
         if (user.getStatus()== UserEnum.STATUS_FORBIDDEN.getCode()){
             throw new BusinessException(ResultCode.USER_STATUS_FORBIDDEN);
         }
     }
+
+
+
 
 }

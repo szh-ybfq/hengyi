@@ -8,7 +8,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class UserRegisterDTO implements Serializable {
+public class UserRegisterDTO {
 
     @NotBlank(message = "账号不能为空")
     @Size(min = 5, max = 60, message = "用户名长度必须在5~60位之间")
@@ -23,8 +23,4 @@ public class UserRegisterDTO implements Serializable {
     private String nickname;
 
     private String avatar;
-
-    // 可选：验证码、记住我、设备标识
-    // private String captcha;
-    // private Boolean rememberMe;
 }

@@ -17,6 +17,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.io.IOException;
 
 import static com.zh.hengyi.common.constant.AuthConstant.*;
+import static com.zh.hengyi.config.sercurity.utils.jwt.JwtUtil.extractToken;
 
 @Component
 @RequiredArgsConstructor
@@ -84,7 +85,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
    @Override
    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-       String token = getToken(request);
+       String token = extractToken(request);
 
        if (token != null) { //无token，是白名单，直接放行（交给security判断是否需要登录）
            String userJson = (String) redisTemplate.opsForValue().get(TOKEN_PREFIX + token);
@@ -108,11 +109,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
        filterChain.doFilter(request, response);
    }
 
-    private String getToken(HttpServletRequest request) {
-        String header = request.getHeader(HEADER_TOKEN);
-        if (header != null && header.startsWith(BEARER_PREFIX)) {
-            return header.substring(7);
-        }
-        return null;
-    }
 }

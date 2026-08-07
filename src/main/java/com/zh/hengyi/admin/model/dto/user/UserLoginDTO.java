@@ -6,7 +6,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class UserLoginDTO implements Serializable {
+public class UserLoginDTO {
     @NotBlank(message = "账号不能为空")
     private String username;
 

@@ -13,16 +13,18 @@ public enum ResultCode {
     // 参数异常
     PARAM_ERROR(400, "请求参数错误"),
 
-
     // 用户相关 41
-    USER_ERROR(4100,"数据库异常"),
+    USER_ERROR(4100,"用户异常"),
     USER_EXIST(4101,"用户已存在"),
     USER_NOT_EXIST(4102,"用户不存在"),
     USERNAME_EXIST(4103,"用户名已存在"),
-    USER_STATUS_FORBIDDEN(4104,"用户被禁用"),
-    PASSWORD_ERROR(4105,"密码错误"),
-    LOGIN_SERIALIZER_ERROR(4106,"登录信息序列化失败"),
-    LOGIN_NOT_EXIST(4107,"用户未登录"),
+    USER_STATUS_LOCKED(4104,"用户被锁定"),
+    USER_STATUS_FORBIDDEN(4105,"用户被禁用"),
+    USER_LOGIN_AUTH_FAIL(4106,"用户认证失败"),
+    PASSWORD_ERROR(4107,"密码错误"),
+    LOGIN_SERIALIZER_ERROR(4108,"登录信息序列化失败"),
+    LOGIN_NOT_EXIST(4109,"用户未登录"),
+    ADMIN_NOT_DELETE(4110,"超级管理员不能删除"),
 
     // 数据库相关 42
     DB_ERROR(4200,"数据库异常"),
@@ -39,8 +41,13 @@ public enum ResultCode {
     // 事务执行失败
     DB_TRANSACTION_ERROR(4206, "事务执行失败，操作已回滚"),
     // 数据库通用未知异常兜底
-    DB_COMMON_ERROR(4299, "数据库执行异常，请联系管理员");
+    DB_COMMON_ERROR(4299, "数据库执行异常，请联系管理员"),
 
+    // 菜单相关 43
+    MENU_NOT_EXIST(4301,"菜单不存在"),
+    MENU_PARENT_NOT_SELF(4302,"父菜单不能选择自己"),
+    ROLE_NOT_EXIST(4303,"角色不存在"),
+    ADMIN_ROLE_NOT_DELETE(4304,"内置超级管理员角色不可删除");
 
 
     private final Integer code;

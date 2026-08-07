@@ -1,4 +1,4 @@
-package com.zh.hengyi.model.entity;
+package com.zh.hengyi.admin.model.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
@@ -11,6 +11,14 @@ import java.time.LocalDateTime;
 public class BaseEntity implements Serializable {
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    // 状态 默认0（启用）【新增自动填充，更新不覆盖】
+    @TableField(fill = FieldFill.INSERT)
+    private Integer status;
+
+    // 逻辑删除字段（你之前要的逻辑删除）
+    @TableField(fill = FieldFill.INSERT)
+    private Integer deleted;
 
     // 创建人
     @TableField(fill = FieldFill.INSERT)
@@ -29,11 +37,5 @@ public class BaseEntity implements Serializable {
     private LocalDateTime updateTime;
 
 
-    // 状态 默认0（启用）【新增自动填充，更新不覆盖】
-    @TableField(fill = FieldFill.INSERT)
-    private Integer status;
 
-    // 逻辑删除字段（你之前要的逻辑删除）
-    @TableField(fill = FieldFill.INSERT)
-    private Integer deleted;
 }

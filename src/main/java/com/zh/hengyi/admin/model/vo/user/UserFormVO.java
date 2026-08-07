@@ -1,12 +1,16 @@
 package com.zh.hengyi.admin.model.vo.user;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-
-import java.io.Serializable;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-public class UserFormVO implements Serializable {
+@Schema(description = "用户表单VO")
+public class UserFormVO {
+    private Long id;
     private String username;
-    private String password;
-    private String token;
+    private String nickname;
+    private String avatar;
+    private Integer status;
 }

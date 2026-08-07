@@ -1,20 +1,17 @@
 package com.zh.hengyi.admin.model.dto.user;
 
-import jakarta.validation.constraints.NotBlank;
+import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.zh.hengyi.admin.model.dto.common.QueryDTO;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-import java.io.Serializable;
-
-//用户分页查询请求参数
 @Data
-public class UserQueryDTO implements Serializable {
-    @NotBlank(message = "账号不能为空")
+@Schema(description = "用户分页查询条件")
+public class UserQueryDTO extends QueryDTO {
+    @Schema(description = "用户名")
     private String username;
-
-    @NotBlank(message = "密码不能为空")
-    private String password;
-
-    // 可选：验证码、记住我、设备标识
-//    private String captcha;
-//    private Boolean rememberMe;
+    @Schema(description = "昵称")
+    private String nickname;
+    @Schema(description = "状态")
+    private Integer status;
 }
