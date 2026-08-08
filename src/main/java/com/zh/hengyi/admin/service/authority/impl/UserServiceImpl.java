@@ -92,7 +92,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ResultCode.USER_STATUS_FORBIDDEN);//校验用户密码
         } catch (AuthenticationException e) {
             // 所有其他认证异常父类兜底
-            throw new BusinessException(ResultCode.USER_LOGIN_AUTH_FAIL, e.getMessage());
+            throw new BusinessException(ResultCode.USER_LOGIN_AUTH_FAIL);
         }
 
         // 2 认证成功，拿到用户信息

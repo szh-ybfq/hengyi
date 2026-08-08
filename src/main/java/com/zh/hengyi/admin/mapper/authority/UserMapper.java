@@ -19,8 +19,8 @@ public interface UserMapper extends BaseMapper<User> {
     default IPage<User> getPage(UserQueryDTO dto){
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<User>()
                 .eq(dto.getStatus() != null, User::getStatus, dto.getStatus())
-                // 1 为什么这么写？因为状态和前面模糊查询是并且关系，不是“或”关系，否则只满足状态即可，前面模糊查询失效
-                // 2 StrUtil.isNotBlank很重要，如果未输入条件，就不拼接，更兼容
+                                                                                                                            // 1 为什么这么写？因为状态和前面模糊查询是并且关系，不是“或”关系，否则只满足状态即可，前面模糊查询失效
+                                                                                                                            // 2 StrUtil.isNotBlank很重要，如果未输入条件，就不拼接，更兼容
                 .and(StrUtil.isNotBlank(dto.getUsername()) || StrUtil.isNotBlank(dto.getNickname()), w -> {
                     w.like(StrUtil.isNotBlank(dto.getUsername()), User::getUsername, dto.getUsername());
                     w.or(StrUtil.isNotBlank(dto.getNickname()));

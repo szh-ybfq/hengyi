@@ -12,8 +12,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2026-08-08 12:58:20
 */
 @Service
-public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, ProductImage>
-    implements ProductImageService{
+public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, ProductImage> implements ProductImageService{
 
 }
 

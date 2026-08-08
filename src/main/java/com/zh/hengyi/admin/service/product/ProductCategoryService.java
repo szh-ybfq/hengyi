@@ -1,7 +1,14 @@
 package com.zh.hengyi.admin.service.product;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.zh.hengyi.admin.model.dto.product.ProductCategoryAddDTO;
+import com.zh.hengyi.admin.model.dto.product.ProductCategoryEditDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductCategory;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zh.hengyi.admin.model.vo.product.ProductCategoryOptionVO;
+import com.zh.hengyi.admin.model.vo.product.ProductCategoryTreeVO;
+
+import java.util.List;
 
 /**
 * @author HENGGE
@@ -10,4 +17,23 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface ProductCategoryService extends IService<ProductCategory> {
 
+    List<ProductCategoryTreeVO> getCategoryTree();
+
+    List<ProductCategoryOptionVO> getOptionList();
+
+    void add(ProductCategoryAddDTO dto);
+
+    void edit(ProductCategoryEditDTO dto);
+
+    void removeByIdRecursive(Long id);
+
+    /**
+     * 校验当前分类是否存在
+     */
+    void validCatogaryExist(Long id);
+
+    /**
+     * 校验父分类是否存在
+     */
+    void validParentCatogaryExist(Long parentId);
 }

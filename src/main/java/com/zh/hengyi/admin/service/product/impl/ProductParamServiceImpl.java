@@ -12,8 +12,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2026-08-08 12:58:20
 */
 @Service
-public class ProductParamServiceImpl extends ServiceImpl<ProductParamMapper, ProductParam>
-    implements ProductParamService{
+public class ProductParamServiceImpl extends ServiceImpl<ProductParamMapper, ProductParam> implements ProductParamService{
 
 }
 

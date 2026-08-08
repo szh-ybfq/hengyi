@@ -10,8 +10,9 @@ public enum ResultCode {
     // 失败
     ERROR(500, "操作失败"),
 
-    // 参数异常
+    // 参数异常 40
     PARAM_ERROR(400, "请求参数错误"),
+    VALID_PARAM_ERROR(4001, "请求参数错误"),
 
     // 用户相关 41
     USER_ERROR(4100,"用户异常"),
@@ -47,9 +48,27 @@ public enum ResultCode {
     MENU_NOT_EXIST(4301,"菜单不存在"),
     MENU_PARENT_NOT_SELF(4302,"父菜单不能选择自己"),
     ROLE_NOT_EXIST(4303,"角色不存在"),
-    ADMIN_ROLE_NOT_DELETE(4304,"内置超级管理员角色不可删除");
+    ADMIN_ROLE_NOT_DELETE(4304,"内置超级管理员角色不可删除"),
 
-
+    // 商品、分类 44
+    // 4401 分类不存在
+    CATEGORY_NOT_EXIST(4401, "该分类不存在"),
+    // 4402 父分类不存在
+    CATEGORY_PARENT_NOT_EXIST(4402, "父分类不存在"),
+    // 4403 分类名称已存在
+    CATEGORY_NAME_DUPLICATE(4403, "该分类名称已存在"),
+    // 4404 父分类不能选择自己
+    CATEGORY_PARENT_NOT_SELF(4404, "父分类不能选择自己"),
+    // 4405 存在子分类禁止删除
+    CATEGORY_HAS_CHILD_NOT_DELETE(4405, "删除失败：该分类下存在子分类，请先删除子分类"),
+    // 4406 分类绑定商品禁止删除
+    CATEGORY_HAS_SPU_NOT_DELETE(4406, "删除失败：该分类下存在商品数据，请先迁移/删除商品"),
+    // 4421 商品不存在
+    SPU_NOT_EXIST(4421, "商品不存在"),
+    // 4422 商品名称重复
+    SPU_NAME_DUPLICATE(4422, "商品名称已存在"),
+    // 4423 SKU规格不能为空
+    SPU_SKU_EMPTY(4423, "至少填写一条SKU规格");
     private final Integer code;
     private final String msg;
 

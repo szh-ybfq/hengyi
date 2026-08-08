@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
+import java.util.IllegalFormatException;
 
 @Slf4j
 @RestControllerAdvice
@@ -30,9 +31,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<?> validExceptionHandler(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldError().getDefaultMessage();
-        log.error("[参数校验异常]", e);
-        return Result.error(ResultCode.PARAM_ERROR.getCode(), message);
+        log.error("[Valid框架：请求参数错误]", e);
+        return Result.error(ResultCode.VALID_PARAM_ERROR.getCode(), message);
     }
+
 
     // 4 Mybatis、SQL异常
     @ExceptionHandler(DuplicateKeyException.class)

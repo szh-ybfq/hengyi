@@ -1,5 +1,7 @@
 package com.zh.hengyi.admin.mapper.product;
 
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zh.hengyi.admin.model.entity.product.ProductCategory;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -12,6 +14,18 @@ import org.apache.ibatis.annotations.Mapper;
 */
 @Mapper
 public interface ProductCategoryMapper extends BaseMapper<ProductCategory> {
+
+    /**
+     * 根据分类名称查询（重名校验）
+     */
+    default ProductCategory selectOneByCategoryName(String categoryName, Long excludeId) {
+        LambdaQueryWrapper<ProductCategory> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProductCategory::getCategoryName, categoryName);
+        if(excludeId != null){
+            wrapper.ne(ProductCategory::getId, excludeId);
+        }
+        return selectOne(wrapper);
+    }
 
 }
 
