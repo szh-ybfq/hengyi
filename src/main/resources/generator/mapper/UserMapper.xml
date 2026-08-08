@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="generator.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="generator.domain.User">
+    <resultMap id="BaseResultMap" type="generator.product.User">
             <id property="id" column="id" />
             <result property="username" column="username" />
             <result property="nickname" column="nickname" />

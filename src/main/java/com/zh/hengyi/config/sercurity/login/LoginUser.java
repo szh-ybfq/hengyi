@@ -1,7 +1,7 @@
 package com.zh.hengyi.config.sercurity.login;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.zh.hengyi.admin.model.entity.User;
+import com.zh.hengyi.admin.model.entity.authority.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
