@@ -23,7 +23,9 @@ import com.zh.hengyi.admin.model.entity.authority.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.redisson.api.RBucket;
+import org.redisson.api.RedissonClient;
+
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -36,6 +38,8 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static com.zh.hengyi.common.constant.AuthConstant.*;
 import static com.zh.hengyi.common.result.ResultCode.ADMIN_NOT_DELETE;
@@ -50,7 +54,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, Object> redisTemplate;
+//    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedissonClient redissonClient;
     private final ObjectMapper objectMapper;
 
     // 1、注册（新增插入，不用判断存在）
@@ -113,15 +118,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         redisTemplate.opsForValue().set(redisKey, userJson, Duration.ofSeconds(expire));*/
 
         Long userId = loginUser.getUser().getId();
-        loginUser.getUser().setPassword(null);
 
         // 2.构造key      userKey：用户索引的键key    oldToken：用户索引的值，又是会话的键的部分   oldTokenKey：旧会话的键
         String userKey = USER_PREFIX + userId + ":" + DEVICE;
-        String oldToken = (String) redisTemplate.opsForValue().get(userKey);
+        // String oldToken = (String) redisTemplate.opsForValue().get(userKey);
+        String oldToken = Optional.ofNullable(redissonClient.getBucket(userKey).get()).map(Object::toString).orElse(null);
         String oldTokenKey = TOKEN_PREFIX + oldToken;
         // 3.清理旧会话
         if (StrUtil.isNotBlank(oldToken)) {
-            redisTemplate.delete(oldTokenKey);
+            // redisTemplate.delete(oldTokenKey);
+            redissonClient.getBucket(oldTokenKey).delete();
             log.info("已清除用户登录会话缓存");
         }
 
@@ -131,8 +137,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         String userJson = objectMapper.writeValueAsString(loginUser); // 新会话的值
 
         // 5.存入两组缓存
-        redisTemplate.opsForValue().set(userKey, newToken, Duration.ofSeconds(EXPIRE_SECOND));
-        redisTemplate.opsForValue().set(newTokenKey, userJson, Duration.ofSeconds(EXPIRE_SECOND));
+//        redisTemplate.opsForValue().set(userKey, newToken, Duration.ofSeconds(EXPIRE_SECOND));
+//        redisTemplate.opsForValue().set(newTokenKey, userJson, Duration.ofSeconds(EXPIRE_SECOND));
+        redissonClient.getBucket(userKey).set(newToken,Duration.ofSeconds(EXPIRE_SECOND));
+        redissonClient.getBucket(newTokenKey).set(userJson,Duration.ofSeconds(EXPIRE_SECOND));
         log.info("用户新登录会话缓存成功");
 
         // 6 实体转换
@@ -152,18 +160,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return;
         }
         String curTokenKey = TOKEN_PREFIX + token;
-        String userJson = (String) redisTemplate.opsForValue().get(curTokenKey);
+
+//        String userJson = (String) redisTemplate.opsForValue().get(curTokenKey);
+        String userJson = Optional.ofNullable(redissonClient.getBucket(curTokenKey).get()).map(Object::toString).orElse(null);
         if (StrUtil.isBlank(userJson)) {
             return;
         }
-
         // 删除双key：用户索引、会话
         try {
             LoginUser loginUser = objectMapper.readValue(userJson, LoginUser.class); //json->java对象
             String userKey = USER_PREFIX + loginUser.getUser().getId() + ":" + DEVICE;
 
-            redisTemplate.delete(userKey);
-            redisTemplate.delete(curTokenKey);
+            redissonClient.getBucket(userKey).delete();
+            redissonClient.getBucket(curTokenKey).delete();
             log.info("用户退出清除会话缓存成功");
         } catch (Exception e) {
             log.error("退出登录解析LoginUser失败", e);

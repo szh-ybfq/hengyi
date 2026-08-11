@@ -16,14 +16,18 @@ import com.zh.hengyi.admin.model.vo.product.ProductCategoryTreeVO;
 import com.zh.hengyi.admin.service.product.ProductCategoryService;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
+import com.zh.hengyi.common.utils.cache.product.ProductCacheUtil;
 import io.netty.util.internal.ObjectUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RBloomFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
 
 /**
  * @author HENGGE
@@ -32,9 +36,11 @@ import java.util.Objects;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMapper, ProductCategory> implements ProductCategoryService {
 
     private final ProductSpuMapper productSpuMapper;
+    private final ProductCacheUtil productCacheUtil;
 
     @Override
     public List<ProductCategoryTreeVO> getCategoryTree() {
@@ -65,6 +71,16 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
         validAdd(dto);
         ProductCategory entity = BeanUtil.copyProperties(dto, ProductCategory.class);
         baseMapper.insert(entity);
+
+        // 如果布隆还没预热完成：直接 return，不执行 add。
+            // 作用：因为预热未完成，布隆过滤器还未初始化完成，会报错      就算暂时没添加，预热时也会将新增的分类添加到布隆过滤器，不会丢失
+            // 因为新增分类 无非在查的时候或查完再，前者预热时添加到布隆，后者新增时添加到布隆
+        if (!productCacheUtil.bloomReady) {
+            log.warn("布隆未完成预热，跳过分类ID:{}", entity.getId());
+            return;
+        }
+        productCacheUtil.getProductBloom().add(entity.getId());
+        log.warn("新增商品分类id：{}，写入布隆过滤器", entity.getId());
     }
 
     @Override
@@ -78,6 +94,10 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
     public void removeByIdRecursive(Long id) {
         validRemove(id);
         baseMapper.deleteById(id);
+
+        // 清理该分类下所有类型缓存(目前只有商品分页缓存，只删除它)
+        productCacheUtil.clearCategoryAllCache(id);
+        log.info("清理该分类下所有类型缓存成功");
     }
 
     //  私有校验方法

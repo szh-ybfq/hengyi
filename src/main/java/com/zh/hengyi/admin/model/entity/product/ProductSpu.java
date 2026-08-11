@@ -51,6 +51,4 @@ public class ProductSpu extends BaseEntity {
 
     // status: 0下架 1上架
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

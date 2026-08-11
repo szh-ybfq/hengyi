@@ -63,15 +63,21 @@ public enum ResultCode {
     CATEGORY_HAS_CHILD_NOT_DELETE(4405, "删除失败：该分类下存在子分类，请先删除子分类"),
     // 4406 分类绑定商品禁止删除
     CATEGORY_HAS_SPU_NOT_DELETE(4406, "删除失败：该分类下存在商品数据，请先迁移/删除商品"),
+
     // 4421 商品不存在
     SPU_NOT_EXIST(4421, "商品不存在"),
     // 4422 商品名称重复
     SPU_NAME_DUPLICATE(4422, "商品名称已存在"),
     // 4423 SKU规格不能为空
-    SPU_SKU_EMPTY(4423, "至少填写一条SKU规格");
+    SPU_SKU_EMPTY(4423, "至少填写一条SKU规格"),
+
+
+    // 4441 商品分页缓存
+    CACHE_QUERY_EMPTY(4441, "缓存查询异常"),
+    CACHE_LOCK_TIMEOUT(4442, "获取缓存锁超时，请稍后重试");
+
     private final Integer code;
     private final String msg;
-
 
     ResultCode(Integer code, String msg) {
         this.code = code;

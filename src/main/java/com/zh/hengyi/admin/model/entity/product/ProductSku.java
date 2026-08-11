@@ -54,6 +54,4 @@ public class ProductSku extends BaseEntity{
     @Version
     private Integer version;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

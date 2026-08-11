@@ -1,41 +1,46 @@
-package com.zh.hengyi.admin.model.entity.product;
+package com.zh.hengyi.admin.model.entity.cart;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.util.Date;
-
 import com.zh.hengyi.admin.model.entity.BaseEntity;
 import lombok.Data;
 
+import java.io.Serializable;
+import java.util.Date;
+
 /**
- * 商品分类表
- * @TableName product_category
+ * 购物车表
+ * @TableName cart
  */
-@TableName(value ="product_category")
+@TableName(value ="cart")
 @Data
-public class ProductCategory extends BaseEntity {
+public class Cart extends BaseEntity {
     /**
-     * 主键
+     * 
      */
     @TableId(type = IdType.AUTO)
     private Long id;
 
     /**
-     * 父分类id，0顶级分类
+     * 用户id
      */
-    private Long parentId;
+    private Long userId;
 
     /**
-     * 分类名称
+     * sku商品
      */
-    private String categoryName;
+    private Long skuId;
 
     /**
-     * 排序
+     * 购买数量
      */
-    private Integer sort;
+    private Integer count;
+
+    /**
+     * 是否选中 0未选中1选中
+     */
+    private Integer selected;
 
 }

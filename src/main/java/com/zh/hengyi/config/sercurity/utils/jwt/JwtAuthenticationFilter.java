@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,8 +25,8 @@ import static com.zh.hengyi.config.sercurity.utils.jwt.JwtUtil.extractToken;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final RedissonClient redissonClient;
 
    /*
    * Jwt 认证过滤器：拦截所有进入后端http请求，统一token校验，不用每个controller都校验
@@ -88,7 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
        String token = extractToken(request);
 
        if (token != null) { //无token，是白名单，直接放行（交给security判断是否需要登录）
-           String userJson = (String) redisTemplate.opsForValue().get(TOKEN_PREFIX + token);
+           String userJson = (String) redissonClient.getBucket(TOKEN_PREFIX + token).get();
            if (userJson == null) {
                // token失效/用户退出，401
                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

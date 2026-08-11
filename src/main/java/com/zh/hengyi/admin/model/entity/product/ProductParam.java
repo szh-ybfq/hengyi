@@ -38,6 +38,4 @@ public class ProductParam extends BaseEntity {
      */
     private String paramValue;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

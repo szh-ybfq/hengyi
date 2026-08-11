@@ -25,13 +25,39 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.8.9</version>
         </dependency>
-        <!--  热部署     -->
+
+
+        <!--  devtools 热部署     -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional> <!--  防止子项目继承 devtools    -->
         </dependency>
+
+        <!-- Caffeine 本地缓存高性能实现 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.2.4</version>
+        </dependency>
+        <!-- Redisson 分布式锁  -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+            <version>4.6.1</version>
+        </dependency>
+        <!-- RabbitMQ 延迟双删缓存用 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+        <!-- test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+        </dependency>
+
         <!--  美化Knife4j       -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
@@ -108,18 +134,15 @@
             <scope>runtime</scope>
         </dependency>
         <!-- Spring Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
+<!--        </dependency>-->
         <!-- 支持LocalDateTime时间序列化（必加，防止后续报错） -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
-
-
         <!--   Hutool -->
         <dependency>
             <groupId>cn.hutool</groupId>
@@ -144,8 +167,6 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
-
-
         <!--   web test    -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

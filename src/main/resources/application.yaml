@@ -9,6 +9,14 @@ spring:
     url: jdbc:mysql://localhost:3306/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: 1234
+#    hikari: #pom依赖未导入
+#      # 核心参数
+#      maximum-pool-size: 60        # 最大连接数，32G机器压测推荐50~70，2000并发不会堵连接
+#      minimum-idle: 20            # 空闲常驻连接，避免频繁创建销毁连接
+#      idle-timeout: 300000        # 空闲连接5分钟释放
+#      max-lifetime: 1800000       # 连接最长存活30分钟（小于mysql默认8小时超时）
+##      connection-test-query: SELECT 1
+#      connection-timeout: 3000    # 获取连接等待超时3秒，避免卡死线程
   # redis
   data:
     redis:
@@ -16,7 +24,44 @@ spring:
       port: 6379
       # password: 这里直接注释，不写
       database: 1
-      timeout: 5000ms # 最多发起到接受等待5秒，
+# redission
+  redisson:
+    single-server-config:
+      address: redis://127.0.0.1:6379
+      database: 1
+      lock-watchdog-timeout: 10000  # 分布式锁默认等待3s，持有锁10s自动释放（自动续期）
+      auto-configure-redis-template: false # 禁止Redisson代理Spring Data Redis的连接与RedisTemplate
+      connection-minimum-idle-size: 10
+      connection-pool-size: 100
+  # rabbitmq
+  rabbitmq:
+    # 连接地址
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 开启发布确认（消息投递可靠性）
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    # 消费者配置
+    listener:
+      simple:
+        # 自动ACK：manual手动，auto自动
+        acknowledge-mode: manual
+        # 预取数量，限流
+        prefetch: 10
+        # 并发消费者数量
+        concurrency: 3
+        max-concurrency: 10
+        # 消费者失败重试
+        retry:
+          enabled: true
+          initial-interval: 1000
+#          max-attempts: 5
+          multiplier: 2
   # 日志颜色
   output:
     ansi:
@@ -35,6 +80,23 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
+#logging:
+#  level:
+#    root: warn                          # 全局只输出警告、错误，屏蔽info无关日志
+#    com.hengyi: warn                    # 自己业务包仅警告日志
+#    com.hengyi.mapper: warn             # 关闭SQL打印！压测绝对不能开debug打印SQL
+#    # 框架日志降级，减少输出
+#    org.springframework: warn
+#    com.zaxxer.hikari: warn
+#    io.lettuce: warn                    # Redis日志降级
+#  pattern:
+#    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{30} - %msg%n"
+#  file:
+#    name: ./logs/app.log
+#  logback:
+#    rollingpolicy:
+#      max-file-size: 100MB
+#      max-history: 2
 
 # mybatis-plus 配置
 mybatis-plus:

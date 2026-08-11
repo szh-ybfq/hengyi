@@ -38,6 +38,4 @@ public class ProductImage extends BaseEntity {
      */
     private Integer sort;
 
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }
