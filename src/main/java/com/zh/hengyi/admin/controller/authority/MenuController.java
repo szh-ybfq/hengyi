@@ -8,6 +8,7 @@ import com.zh.hengyi.admin.service.authority.MenuService;
 import com.zh.hengyi.admin.model.vo.authority.menu.MenuTreeVO;
 import com.zh.hengyi.common.result.Result;
 import com.zh.hengyi.config.sercurity.login.LoginUser;
+import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,9 +34,7 @@ public class MenuController {
     @GetMapping("/user/tree")
     @Operation(summary = "获取当前登录用户的菜单树【前端Sidebar侧边栏】")
     public Result<List<MenuTreeVO>> userTree(){
-        // 从Security上下文拿到登录userId
-        Long userId = ((LoginUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUser().getId();
-        return Result.success(menuService.getUserMenuTree(userId));
+        return Result.success(menuService.getUserMenuTree(SecurityUtils.getLoginUser().getUser().getId()));
     }
 
     @GetMapping("/{id}")

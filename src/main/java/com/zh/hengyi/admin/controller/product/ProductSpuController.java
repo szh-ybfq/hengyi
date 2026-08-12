@@ -48,12 +48,12 @@ public class ProductSpuController {
         return Result.success();
     }
 
-//    @PutMapping("/edit")
-//    @Operation(summary = "商品上下架")
-//    public Result<Void> edit(@Valid @RequestBody ProductSpuEditDTO dto) {
-//        spuService.edit(dto);
-//        return Result.success();
-//    }
+    /*    @PutMapping("/edit")
+    @Operation(summary = "商品上下架")
+    public Result<Void> edit(@Valid @RequestBody ProductSpuEditDTO dto) {
+        spuService.edit(dto);
+        return Result.success();
+    }*/
 
     @DeleteMapping("/{id}")
     @Operation(summary = "删除SPU商品")

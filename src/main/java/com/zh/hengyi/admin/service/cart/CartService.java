@@ -1,7 +1,11 @@
 package com.zh.hengyi.admin.service.cart;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zh.hengyi.admin.model.dto.cart.CartAddDTO;
+import com.zh.hengyi.admin.model.dto.cart.CartSelectDTO;
+import com.zh.hengyi.admin.model.dto.cart.CartUpdateCountDTO;
 import com.zh.hengyi.admin.model.entity.cart.Cart;
+import com.zh.hengyi.admin.model.vo.cart.CartTotalVO;
 
 /**
 * @author HENGGE
@@ -9,5 +13,38 @@ import com.zh.hengyi.admin.model.entity.cart.Cart;
 * @createDate 2026-08-11 08:04:12
 */
 public interface CartService extends IService<Cart> {
+    /**
+     * 加入购物车
+     */
+    void addCart(CartAddDTO dto);
+
+    /**
+     * 修改购物车商品数量
+     */
+    void updateCount(CartUpdateCountDTO dto);
+
+    /**
+     * 删除购物车商品
+     */
+    void removeCart(Long skuId);
+
+    /**
+     * 修改选中状态 / 全选/全不选
+     */
+    void updateSelect(CartSelectDTO dto);
+
+    /**
+     * 查询当前用户完整购物车（带汇总价格数量）
+     */
+    CartTotalVO getCartList();
+
+    // 登录校验
+    Integer strToInt(Object obj);
+
+    // 登录校验
+    void validUserLogin();
+
+    // 校验单条购物车记录是否存在
+    void validCartExist( Long skuId);
 
 }

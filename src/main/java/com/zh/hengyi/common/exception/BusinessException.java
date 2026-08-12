@@ -24,12 +24,6 @@ public class BusinessException extends RuntimeException {
         this.code = ResultCode.getCode();
     }
 
-    // 完全自定义code+msg（少数动态场景使用）
-//    public BusinessException(Integer code, String msg) {
-//        super(msg);
-//        this.code = code;
-//    }
-
     public Integer getCode() {
         return code;
     }

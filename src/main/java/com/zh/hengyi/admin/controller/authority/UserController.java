@@ -35,8 +35,7 @@ public class UserController {
     @Operation(summary = "用户登录")
     @PostMapping("/login")
     public Result<UserLoginVO> login(@RequestBody @Valid UserLoginDTO dto){
-        UserLoginVO loginVO = userService.login(dto);
-        return Result.success(loginVO);
+        return Result.success(userService.login(dto));
     }
 
     @Operation(summary = "用户退出")
@@ -55,7 +54,6 @@ public class UserController {
     @GetMapping("/{id}")
     @Operation(summary = "根据id查询用户信息")
     public Result<UserFormVO> getUserInfo(@PathVariable("id") Long id){
-        System.out.println(id);
         return Result.success(userService.getUserInfo(id));
     }
 
@@ -86,12 +84,11 @@ public class UserController {
         userService.assignRole(dto);
         return Result.success();
     }
+
     @GetMapping("/roleIds/{userId}")
     @Operation(summary = "根据用户id查询已分配角色id集合")
     public Result<List<Long>> getRoleIdsByUserId(@PathVariable Long userId){
         return Result.success(userService.getRoleIdsByUserId(userId));
     }
-
-
 
 }

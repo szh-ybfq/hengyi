@@ -67,7 +67,7 @@ public class RoleController {
 
     @PostMapping("/assignMenu")
     @Operation(summary = "分配角色菜单")
-    public Result<?> assignMenu(@RequestBody RoleAssignMenuDTO dto){
+    public Result<Void> assignMenu(@RequestBody RoleAssignMenuDTO dto){
         roleService.assignMenu(dto);
         return Result.success();
     }

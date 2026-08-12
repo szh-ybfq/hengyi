@@ -16,6 +16,8 @@ import com.zh.hengyi.admin.model.entity.product.ProductCategory;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
+import com.zh.hengyi.component.rabbitmq.consumer.CacheDelayMsgDTO;
+import com.zh.hengyi.config.rabbitmq.CacheDelayedMqConfig;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -305,7 +307,7 @@ public class ProductCacheUtil {
         batchDelRedisByPattern(pagePatternIndex);
 
         // 3、发送500ms延迟批量清理消息兜底
-//        sendDelayDeleteMsg("category_page", null, categoryId, DELAY_DELETE_TIME);
+        sendDelayDeleteMsg("category_page", null, categoryId, DELAY_DELETE_TIME);
         log.info("清除商品该分类下所有分页缓存成功");
     }
 
@@ -359,16 +361,14 @@ public class ProductCacheUtil {
      * @param categoryId 分类批量删除传，单key传null
      * @param delayMs 延迟毫秒
      */
-    private void sendDelayDeleteMsg(String type, String cacheKey, Long categoryId, long delayMs) {
-        Map<String, Object> msg = new HashMap<>();
-        msg.put("type", type);
-        if (StrUtil.isNotBlank(cacheKey)) {//单key
-            msg.put("cacheKey", cacheKey);
-        }
-        if (categoryId != null) {
-            msg.put("categoryId", categoryId);//分类分页
-        }
-        rabbitTemplate.convertAndSend(CACHE_DELAY_EXCHANGE, CACHE_DELAY_ROUTE_KEY, msg, message -> {
+    private void sendDelayDeleteMsg(String type, String cacheKey, Long categoryId, Long delayMs) {
+        // 替换HashMap，使用DTO封装数据
+        CacheDelayMsgDTO dto = new CacheDelayMsgDTO();
+        dto.setType(type);
+        dto.setCacheKey(cacheKey);
+        dto.setCategoryId(categoryId);
+        rabbitTemplate.convertAndSend(CACHE_DELAY_EXCHANGE, CACHE_DELAY_ROUTE_KEY, dto, message -> {
+            // 设置延迟时间头
             message.getMessageProperties().setHeader("x-delay", delayMs);
             return message;
         });

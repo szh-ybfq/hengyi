@@ -74,7 +74,11 @@ public enum ResultCode {
 
     // 4441 商品分页缓存
     CACHE_QUERY_EMPTY(4441, "缓存查询异常"),
-    CACHE_LOCK_TIMEOUT(4442, "获取缓存锁超时，请稍后重试");
+    CACHE_LOCK_TIMEOUT(4442, "获取缓存锁超时，请稍后重试"),
+
+    // 4500 购物车
+    CART_ERROR(4500, "购物车异常"),
+    CART_NOT_EXIST(4501, "该商品购物车记录不存在，请检查后重试");
 
     private final Integer code;
     private final String msg;

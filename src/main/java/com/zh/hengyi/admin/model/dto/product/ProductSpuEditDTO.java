@@ -11,7 +11,7 @@ import java.util.List;
 @Schema(description = "SPU编辑DTO")
 public class ProductSpuEditDTO {
 
-    @NotNull(message = "spu id不能为空")
+    @NotNull(message = "spuId不能为空")
     @Schema(description = "spu主键id")
     private Long id;
 
