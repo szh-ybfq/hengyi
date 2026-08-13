@@ -64,14 +64,10 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         }
 
         String cacheKey = productCacheUtil.buildCacheKey(dto);
-
         return  productCacheUtil.getTwoLevelCache(cacheKey, ()->{
             IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(dto.getPageNum(), dto.getPageSize()), dto);
             return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
         });
-
-
-
     }
 
     @Override

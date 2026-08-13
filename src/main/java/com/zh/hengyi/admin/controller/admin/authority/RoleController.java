@@ -1,4 +1,4 @@
-package com.zh.hengyi.admin.controller.authority;
+package com.zh.hengyi.admin.controller.admin.authority;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zh.hengyi.admin.model.dto.authority.role.RoleAddDTO;

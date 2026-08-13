@@ -1,6 +1,5 @@
-package com.zh.hengyi.admin.controller.product;
+package com.zh.hengyi.admin.controller.admin.product;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zh.hengyi.admin.model.dto.product.ProductCategoryAddDTO;
 import com.zh.hengyi.admin.model.dto.product.ProductCategoryEditDTO;
 import com.zh.hengyi.admin.model.vo.product.ProductCategoryOptionVO;

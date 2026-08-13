@@ -78,7 +78,15 @@ public enum ResultCode {
 
     // 4500 购物车
     CART_ERROR(4500, "购物车异常"),
-    CART_NOT_EXIST(4501, "该商品购物车记录不存在，请检查后重试");
+    CART_NOT_EXIST(4501, "该商品购物车记录不存在，请检查后重试"),
+    CART_EMPTY(4502, "商品购物车为空"),
+    CART_NO_SELECT(4503, "商品购物车没有被选中的商品"),
+
+    // 4600 购物车
+    ORDER_ERROR(4600, "购物车异常"),
+    ORDER_NOT_EXIST(4601, "订单不存在"),
+    ORDER_CANCEL_FORBID(4602, "禁止取消订单"),
+    ORDER_NOT_SLEF_OPERATE_FORBID(4603, "禁止取消非自身的订单");
 
     private final Integer code;
     private final String msg;

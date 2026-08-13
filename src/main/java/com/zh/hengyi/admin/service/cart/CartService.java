@@ -6,6 +6,9 @@ import com.zh.hengyi.admin.model.dto.cart.CartSelectDTO;
 import com.zh.hengyi.admin.model.dto.cart.CartUpdateCountDTO;
 import com.zh.hengyi.admin.model.entity.cart.Cart;
 import com.zh.hengyi.admin.model.vo.cart.CartTotalVO;
+import org.redisson.api.RMap;
+
+import java.util.List;
 
 /**
 * @author HENGGE
@@ -13,6 +16,13 @@ import com.zh.hengyi.admin.model.vo.cart.CartTotalVO;
 * @createDate 2026-08-11 08:04:12
 */
 public interface CartService extends IService<Cart> {
+
+    RMap<String, Integer> getUserCartRMap();
+
+    RMap<String, Integer> getUserCartSelectRMap();
+
+    RMap<String, Integer> getUserCartSelectRMap(Long userId);
+
     /**
      * 加入购物车
      */
@@ -23,10 +33,11 @@ public interface CartService extends IService<Cart> {
      */
     void updateCount(CartUpdateCountDTO dto);
 
-    /**
-     * 删除购物车商品
-     */
+    // 删除购物车单个商品
     void removeCart(Long skuId);
+
+    // 删除购物车已勾选商品
+    void removeSelected(List<String> removeSkuKeys);
 
     /**
      * 修改选中状态 / 全选/全不选
@@ -46,5 +57,8 @@ public interface CartService extends IService<Cart> {
 
     // 校验单条购物车记录是否存在
     void validCartExist( Long skuId);
+
+    // 同步库中数据到缓存
+    void reloadCartCache(List<Cart> dbCartList);
 
 }

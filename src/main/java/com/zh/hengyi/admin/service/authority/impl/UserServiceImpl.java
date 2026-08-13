@@ -13,7 +13,7 @@ import com.zh.hengyi.admin.model.vo.authority.user.UserFormVO;
 import com.zh.hengyi.admin.model.vo.authority.user.UserLoginVO;
 import com.zh.hengyi.admin.model.vo.authority.user.UserPageVO;
 import com.zh.hengyi.admin.service.authority.UserService;
-import com.zh.hengyi.common.enums.user.UserEnum;
+import com.zh.hengyi.common.constant.UserConstant;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.config.sercurity.login.LoginUser;
@@ -284,7 +284,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     // 11.5 校验用户状态是否禁用
     public void validUserStatus(User user){
-        if (user.getStatus()== UserEnum.STATUS_FORBIDDEN.getCode()){
+        if (user.getStatus() == UserConstant.STATUS_FORBIDDEN){
             throw new BusinessException(ResultCode.USER_STATUS_FORBIDDEN);
         }
     }

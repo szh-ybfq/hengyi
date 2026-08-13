@@ -1,4 +1,4 @@
-package com.zh.hengyi.admin.controller.authority;
+package com.zh.hengyi.admin.controller.admin.authority;
 
 import com.zh.hengyi.admin.model.dto.authority.menu.MenuAddDTO;
 import com.zh.hengyi.admin.model.dto.authority.menu.MenuEditDTO;
@@ -7,13 +7,11 @@ import com.zh.hengyi.admin.model.vo.authority.menu.MenuFormVO;
 import com.zh.hengyi.admin.service.authority.MenuService;
 import com.zh.hengyi.admin.model.vo.authority.menu.MenuTreeVO;
 import com.zh.hengyi.common.result.Result;
-import com.zh.hengyi.config.sercurity.login.LoginUser;
 import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 

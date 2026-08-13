@@ -61,19 +61,26 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
 
     // Redis购物车key前缀
     private static final String CART_KEY_PREFIX = "cart:user:";
-    private static final String CART_SElECT_KEY_PREFIX = "cart:select:";
+    private static final String CART_SElECT_KEY_PREFIX = "cart:user:select:";
     private static final Integer CART_TTL_DAYS = 30;
 
-    //获取当前登录用户redis key
-    private String getCartRedisKey() {
-        Long userId = SecurityUtils.getLoginUser().getUser().getId();
-        return CART_KEY_PREFIX + userId;
+    // 获取当前登录用户购物车缓存  （RMap：Redisson 封装 Redis Hash 接口，支持原子操作，分布式锁，读写分离，readAllMap() 只读不抢占写线程）
+    @Override
+    public RMap<String, Integer> getUserCartRMap() {
+        return redissonClient.getMap( CART_KEY_PREFIX +SecurityUtils.getLoginUser().getUser().getId());
     }
 
-    // 根据key，获取当前用户购物车 RMap哈希对象     （RMap：Redisson 封装 Redis Hash 接口，支持原子操作，分布式锁，读写分离，readAllMap() 只读不抢占写线程）
-    private RMap<String, Integer> getUserCartRMap() {
-        String redisKey = getCartRedisKey();
-        return redissonClient.getMap(redisKey);
+    // 获取当前用户购物车选中缓存
+    @Override
+    public RMap<String, Integer> getUserCartSelectRMap() {
+        //先获取当前登录用户购物车选中缓存
+        return redissonClient.getMap(CART_SElECT_KEY_PREFIX+SecurityUtils.getLoginUser().getUser().getId());
+    }
+
+    // 获取用户购物车选中选中缓存  方法重载
+    @Override
+    public RMap<String, Integer> getUserCartSelectRMap(Long userId) {
+        return redissonClient.getMap(CART_SElECT_KEY_PREFIX + userId);
     }
 
     // 加入购物车
@@ -120,7 +127,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         log.info("修改数据库购物车记录成功");
     }
 
-    // 删除购物车商品数量
+    // 删除购物车单个商品
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void removeCart(Long skuId) {
@@ -145,11 +152,35 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         log.info("清除数据库购物车记录成功");
     }
 
+
+    // 删除用户购物车已勾选商品
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeSelected(List<String> removeSkuKeys) {
+        // 校验是否之前勾选要下单商品
+        if (CollUtil.isEmpty(removeSkuKeys)) {
+            throw new BusinessException(ResultCode.CART_NO_SELECT);
+        }
+
+        //删除数据库购物车已勾选商品
+        cartMapper.deleteSelected();
+
+        // 删除购物车缓存、选中缓存
+        RMap<String, Integer> cartRMap = getUserCartRMap();
+        RMap<String, Integer> selectRMap = getUserCartSelectRMap();
+        cartRMap.fastRemove(removeSkuKeys.toArray(new String[0]));
+        selectRMap.fastRemove(removeSkuKeys.toArray(new String[0]));
+        cartRMap.expire(Duration.ofDays(30));
+        selectRMap.expire(Duration.ofDays(30));
+    }
+
+
     /*
      * 修改购物车商品选中状态
      *    单条/多条 局部修改传skuId，skuIdList=[A,B]
      *    全选/清空 skuIdList=null selected=1 / skuIdList=null selected=0；
      */
+    // 更新购物车选中缓存
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateSelect(CartSelectDTO dto) {
@@ -173,8 +204,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             // 全选/取消全选：清空原有数据，全量写入
             selectRMap.clear();
             // 先查该用户购物车所有sku,然后批量设为目标值
-            List<Cart> allUserCart = cartMapper.selectList(new LambdaQueryWrapper<Cart>()
-                    .eq(Cart::getUserId, userId).eq(Cart::getDeleted, 0));
+            List<Cart> allUserCart = cartMapper.selectList(new LambdaQueryWrapper<Cart>().eq(Cart::getUserId, userId));
             Map<String, Integer> allSelectMap = allUserCart.stream().collect(Collectors.toMap(c -> c.getSkuId().toString(), c -> targetSelected));
             selectRMap.putAll(allSelectMap);
             log.info("更新购物车全选、取消全选缓存成功");
@@ -252,6 +282,48 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         return totalVO;
     }
 
+    /**
+     * 重载购物车Redis缓存：数据库购物车全量同步到Redis
+     * 适用场景：Redis缓存过期丢失、下单（库缓存不一致时，写会缓存）
+     */
+    @Override
+    public void reloadCartCache(List<Cart> cartList) {
+        // 1. 登录校验
+        validUserLogin();
+        Long userId = SecurityUtils.getLoginUser().getUser().getId();
+
+        // 2. 获取两个Redis Hash缓存
+        RMap<String, Integer> cartRMap = getUserCartRMap();
+        RMap<String, Integer> selectRMap = getUserCartSelectRMap(userId);
+
+        // 3. 先清空原有缓存，避免脏数据残留
+        cartRMap.clear();
+        selectRMap.clear();
+
+        // 数据库无购物车，清空缓存后直接返回
+        if (CollUtil.isEmpty(cartList)) {
+            cartRMap.expire(Duration.ofDays(CART_TTL_DAYS));
+            selectRMap.expire(Duration.ofDays(CART_TTL_DAYS));
+            log.info("用户{}数据库无购物车数据，已清空Redis缓存", userId);
+            return;
+        }
+
+        // 4. 数据库数据组装批量Map，一次性写入Redis
+        cartRMap.putAll(cartList.stream().collect(Collectors.toMap(
+                        cart -> cart.getSkuId().toString(),
+                        Cart::getCount
+                )));
+        selectRMap.putAll(cartList.stream().collect(Collectors.toMap(
+                        cart -> cart.getSkuId().toString(),
+                        cart -> cart.getSelected()
+                )));
+
+        // 统一设置30天过期时间
+        cartRMap.expire(Duration.ofDays(CART_TTL_DAYS));
+        selectRMap.expire(Duration.ofDays(CART_TTL_DAYS));
+        log.info("用户{}购物车缓存重载完成，共同步{}件商品", userId, cartList.size());
+    }
+
     // 数据库新增、更新购物车记录
     private void saveOrUpdateCart(Long skuId,Integer count) {
         Long userId = SecurityUtils.getLoginUser().getUser().getId();
@@ -274,11 +346,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
             existCart.setCount(count);
             cartMapper.updateById(existCart);
         }
-    }
-
-    // 获取用户购物车选中RMap对象
-    private RMap<String, Integer> getUserCartSelectRMap(Long userId) {
-        return redissonClient.getMap(CART_SElECT_KEY_PREFIX + userId);
     }
 
     //计算购物车选中商品总数量、总金额
