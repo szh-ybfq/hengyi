@@ -10,6 +10,7 @@ import com.zh.hengyi.admin.mapper.cart.CartMapper;
 import com.zh.hengyi.admin.model.dto.cart.CartAddDTO;
 import com.zh.hengyi.admin.model.dto.cart.CartSelectDTO;
 import com.zh.hengyi.admin.model.dto.cart.CartUpdateCountDTO;
+import com.zh.hengyi.admin.model.entity.authority.User;
 import com.zh.hengyi.admin.model.entity.cart.Cart;
 import com.zh.hengyi.admin.model.entity.product.ProductSku;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
@@ -22,6 +23,7 @@ import com.zh.hengyi.admin.service.product.ProductSpuService;
 import com.zh.hengyi.common.constant.CartConstant;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
+import com.zh.hengyi.common.utils.security.UserUtils;
 import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
@@ -36,6 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -88,7 +91,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Transactional(rollbackFor = Exception.class)
     public void addCart(CartAddDTO dto) {
         // 登录校验
-        validUserLogin();
+        UserUtils.validUserLogin();
 
         // Redisson原子累加hincrby，存在则数量+addCount，不存在自动新增，单条原子操作，无并发超量
         RMap<String, Integer> cartRMap = getUserCartRMap();
@@ -112,7 +115,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Transactional(rollbackFor = Exception.class)
     public void updateCount(CartUpdateCountDTO dto) {
         // 登录校验
-        validUserLogin();
+        UserUtils.validUserLogin();
         // 检验判空
         validCartExist(dto.getSkuId());
 
@@ -132,7 +135,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Transactional(rollbackFor = Exception.class)
     public void removeCart(Long skuId) {
         // 登录校验
-        validUserLogin();
+        UserUtils.validUserLogin();
         // 检验判空
         validCartExist(skuId);
 
@@ -185,7 +188,7 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Transactional(rollbackFor = Exception.class)
     public void updateSelect(CartSelectDTO dto) {
         // 登录校验
-        validUserLogin();
+        UserUtils.validUserLogin();
 
         // 先获取dto参数
         Long userId = SecurityUtils.getLoginUser().getUser().getId();
@@ -289,8 +292,8 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
     @Override
     public void reloadCartCache(List<Cart> cartList) {
         // 1. 登录校验
-        validUserLogin();
-        Long userId = SecurityUtils.getLoginUser().getUser().getId();
+        User user = UserUtils.validUserLogin();
+        Long userId = user.getId();
 
         // 2. 获取两个Redis Hash缓存
         RMap<String, Integer> cartRMap = getUserCartRMap();
@@ -381,14 +384,6 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         return Integer.parseInt(String.valueOf(obj));
     }
 
-    // 校验用户是否登录
-    @Override
-    public void validUserLogin(){
-        if (SecurityUtils.getLoginUser()==null){
-            throw new BusinessException(ResultCode.LOGIN_NOT_EXIST);
-        }
-    }
-
     // 校验单条购物车记录是否存在
     @Override
     public void validCartExist( Long skuId) {
@@ -396,5 +391,26 @@ public class CartServiceImpl extends ServiceImpl<CartMapper, Cart> implements Ca
         if (cart == null) {
             throw new BusinessException(ResultCode.CART_NOT_EXIST);
         }
+    }
+
+    // 校验购物车缓存是否存在，不存在查库，有就回写缓存
+    @Override
+    public Map<String, Integer> validCartCacheExist(Map<String, Integer> allCartMap){
+        if (CollUtil.isEmpty(allCartMap)) {
+            // 缓存空，再查询数据库
+            List<CartVO> cartVOList = getCartList().getCartList();
+            // 数据库也没有购物车，直接抛异常
+            if (CollUtil.isEmpty(cartVOList)) {
+                throw new BusinessException(ResultCode.CART_EMPTY);
+            }
+
+            // 数据库存在购物车，重新加载到Redis缓存
+            List<Cart> cartList =new ArrayList<>();
+            cartVOList.stream().forEach(cartVO -> cartList.add(BeanUtil.copyProperties(cartVO, Cart.class)));
+            reloadCartCache(cartList);
+            // 重新回写，读取最新缓存
+            allCartMap = getUserCartRMap().readAllMap();
+        }
+        return  allCartMap;
     }
 }

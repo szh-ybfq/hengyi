@@ -1,4 +1,4 @@
-package com.zh.hengyi.component.rabbitmq.consumer;
+package com.zh.hengyi.component.rabbitmq.productCache;
 
 import lombok.Data;
 import java.io.Serializable;

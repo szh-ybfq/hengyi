@@ -4,19 +4,26 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryAdminDTO;
 import com.zh.hengyi.admin.model.vo.order.OrderDetailVO;
 import com.zh.hengyi.admin.model.vo.order.OrderPageVO;
+import com.zh.hengyi.admin.service.order.OrderRefundService;
 import com.zh.hengyi.admin.service.order.OrderService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/admin/api/v1/order")
 @Tag(name = "后台订单管理模块")
-@RequiredArgsConstructor
 public class AdminOrderController {
-    private final OrderService orderService;
+
+    @Autowired
+    @Lazy
+    private OrderService orderService;
+
 
     @GetMapping("/page")
     @Operation(summary = "后台全部订单分页查询")

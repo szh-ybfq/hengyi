@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtil.CACHE_NAME;
+import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.CACHE_NAME;
 
 @Configuration
 public class CaffeineCacheConfig {

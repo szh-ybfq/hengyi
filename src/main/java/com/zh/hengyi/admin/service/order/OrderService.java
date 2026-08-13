@@ -15,14 +15,23 @@ import com.zh.hengyi.admin.model.vo.order.OrderPageVO;
 * @createDate 2026-08-12 20:25:57
 */
 public interface OrderService extends IService<Order> {
-    // 用户下单
+    // 1 用户下单
     void createOrder(OrderCreateDTO dto);
-    // 用户查询我的订单分页
+    // 2 用户查询我的订单分页
     IPage<OrderPageVO> getMyOrderPage(OrderQueryUserDTO dto);
-    // 后台查询所有订单分页
+    // 3 后台查询所有订单分页
     IPage<OrderPageVO> getAdminOrderPage(OrderQueryAdminDTO dto);
-    // 获取订单详情
+    // 4 获取订单详情
     OrderDetailVO getOrderDetail(Long orderId);
-    // 用户取消未支付订单
+    // 5 用户取消未支付订单
     void cancelOrder(Long orderId);
+    // 6 30分钟未支付自动关闭订单
+    void closeOrderByTimeout(Long orderId);
+    // 校验订单是否存在
+    Order validOrderExist(Long orderId);
+    // 校验订单是否本人创建
+    void validOrderSelf(Order order,Long userId);
+    // 校验订单状态
+    void validOrderStatus(Order order);
+
 }

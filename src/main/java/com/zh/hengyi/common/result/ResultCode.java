@@ -82,11 +82,14 @@ public enum ResultCode {
     CART_EMPTY(4502, "商品购物车为空"),
     CART_NO_SELECT(4503, "商品购物车没有被选中的商品"),
 
-    // 4600 购物车
-    ORDER_ERROR(4600, "购物车异常"),
+    // 4600 订单
+    ORDER_ERROR(4600, "订单异常"),
     ORDER_NOT_EXIST(4601, "订单不存在"),
     ORDER_CANCEL_FORBID(4602, "禁止取消订单"),
-    ORDER_NOT_SLEF_OPERATE_FORBID(4603, "禁止取消非自身的订单");
+    ORDER_NOT_SLEF_OPERATE_FORBID(4603, "禁止取消订单，该订单不是您创建的订单"),
+    ORDER_NOT_SLEF_REFUND_OPERATE_FORBID(4604, "仅本人订单可退款"),
+    ORDER_REFUND_OPERATE_FORBID(4605, "订单状态异常，禁止退款"),
+    ORDER_REFUND_EXIST(4606, "订单已经退款，禁止重复退款");
 
     private final Integer code;
     private final String msg;

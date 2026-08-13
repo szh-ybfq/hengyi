@@ -12,17 +12,25 @@ import com.zh.hengyi.admin.service.order.OrderService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user/api/v1/order")
 @Tag(name = "用户订单模块")
-@RequiredArgsConstructor
 public class UserOrderController {
-    private final OrderService orderService;
-//    private final OrderRefundService refundService;
+
+    @Autowired
+    @Lazy
+    private  OrderService orderService;
+
+    @Autowired
+    @Lazy
+    private  OrderRefundService refundService;
 
     @PostMapping("/create")
     @Operation(summary = "购物车结算创建订单")
@@ -49,11 +57,11 @@ public class UserOrderController {
         orderService.cancelOrder(orderId);
         return Result.success();
     }
-//
-//    @PostMapping("/refund/apply")
-//    @Operation(summary = "申请退款")
-//    public Result<Void> applyRefund(@Valid @RequestBody OrderRefundApplyDTO dto){
-//        refundService.applyRefund(dto);
-//        return Result.success();
-//    }
+
+    @PostMapping("/refund/apply")
+    @Operation(summary = "申请退款")
+    public Result<Void> applyRefund(@Valid @RequestBody OrderRefundApplyDTO dto){
+        refundService.applyRefund(dto);
+        return Result.success();
+    }
 }

@@ -12,6 +12,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OrderItemServiceImpl extends ServiceImpl<OrderItemMapper, OrderItem> implements OrderItemService {
     private final OrderItemMapper orderItemMapper;
+    // 1、根据id获取订单子项
     @Override
     public List<OrderItem> getByOrderId(Long orderId) {
         return orderItemMapper.selectByOrderId(orderId);

@@ -1,35 +1,26 @@
 package com.zh.hengyi.common.utils.cache.product;
 
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSON;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.zh.hengyi.admin.mapper.product.ProductCategoryMapper;
-import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductCategory;
-import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
-import com.zh.hengyi.component.rabbitmq.consumer.CacheDelayMsgDTO;
-import com.zh.hengyi.config.rabbitmq.CacheDelayedMqConfig;
+import com.zh.hengyi.component.rabbitmq.productCache.CacheDelayMsgDTO;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.Executor;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
-import org.redisson.api.RObject;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
@@ -46,7 +37,7 @@ import static com.zh.hengyi.config.rabbitmq.CacheDelayedMqConfig.CACHE_DELAY_ROU
 
 @Component
 @Slf4j
-public class ProductCacheUtil {
+public class ProductCacheUtils {
     // 1. Caffeine：JVM进程本地缓存，读写不通过网络，毫秒级
     @Resource(name = "productLocalCacheManager")
     private CacheManager caffeineCacheManager;

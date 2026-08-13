@@ -56,12 +56,12 @@ spring:
         # 并发消费者数量
         concurrency: 3
         max-concurrency: 10
-        # 消费者失败重试
-        retry:
-          enabled: true
-          initial-interval: 1000
-#          max-attempts: 5
-          multiplier: 2
+#        # 消费者失败重试
+#        retry:
+#          enabled: true
+#          initial-interval: 1000
+##          max-attempts: 5
+#          multiplier: 2
   # 日志颜色
   output:
     ansi:

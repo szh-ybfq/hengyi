@@ -2,6 +2,7 @@ package com.zh.hengyi.admin.service.order;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zh.hengyi.admin.model.dto.order.OrderRefundApplyDTO;
+import com.zh.hengyi.admin.model.entity.order.Order;
 import com.zh.hengyi.admin.model.entity.order.OrderRefund;
 import com.zh.hengyi.admin.model.vo.order.OrderRefundVO;
 
@@ -13,4 +14,10 @@ import com.zh.hengyi.admin.model.vo.order.OrderRefundVO;
 public interface OrderRefundService extends IService<OrderRefund> {
     // 申请退款
     void applyRefund(OrderRefundApplyDTO dto);
+
+    void validOrderRefundExist(Long orderId);
+
+    void validOrderRefundSelf(Order order, Long userId);
+
+    void validOrderRefundStatus(Order order);
 }

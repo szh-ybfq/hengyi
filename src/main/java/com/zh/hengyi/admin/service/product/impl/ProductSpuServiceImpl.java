@@ -2,7 +2,6 @@ package com.zh.hengyi.admin.service.product.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjUtil;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -25,10 +24,9 @@ import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
-import com.zh.hengyi.common.utils.cache.product.ProductCacheUtil;
+import com.zh.hengyi.common.utils.cache.product.ProductCacheUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
 import org.redisson.api.RBloomFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +42,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     private final ProductSkuMapper skuMapper;
     private final ProductSkuService skuService;
     private final ProductImageMapper imageMapper;
-    private final ProductCacheUtil productCacheUtil;
+    private final ProductCacheUtils productCacheUtils;
 
     // 商品分页高并发接口优化
     @Override
@@ -55,16 +53,16 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 0 粗粒度布隆过滤器拦截(只拦截不存在分类)
         //❗️必须放到一、二级缓存前，作为做前置校验，恶意不存在分类直接返回null
         //❗️️因为分页条件组合、商品名、上下架状态是无穷的，不可能把所有全写出来，分类可以穷尽，几百个，上下架状态兼顾前后端所以不预热
-        RBloomFilter<Long> bloom = productCacheUtil.getProductBloom();
+        RBloomFilter<Long> bloom = productCacheUtils.getProductBloom();
         Long categoryId = dto.getCategoryId();
         // 场景1：前端传了分类ID，但是布隆判定不存在 → 数据库一定无数据，直接返回空页，防缓存穿透
         // 场景2：前端没有传分类ID，不走布隆过滤器，正常查
-        if (productCacheUtil.bloomReady && categoryId != null && !bloom.contains(categoryId)) {
+        if (productCacheUtils.bloomReady && categoryId != null && !bloom.contains(categoryId)) {
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
 
-        String cacheKey = productCacheUtil.buildCacheKey(dto);
-        return  productCacheUtil.getTwoLevelCache(cacheKey, ()->{
+        String cacheKey = productCacheUtils.buildCacheKey(dto);
+        return  productCacheUtils.getTwoLevelCache(cacheKey, ()->{
             IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(dto.getPageNum(), dto.getPageSize()), dto);
             return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
         });
@@ -95,7 +93,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         skuService.saveBatch(skuList);
 
         // 删除商品该分类下所有分页缓存
-        productCacheUtil.clearCategoryPageCache(dto.getCategoryId());
+        productCacheUtils.clearCategoryPageCache(dto.getCategoryId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -124,18 +122,18 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         boolean changeCategory = !ObjUtil.equal(oldSpu.getCategoryId(), newSpu.getCategoryId());
 
         // 3. 待删除缓存key
-        String cacheKey = productCacheUtil.buildCacheKey(BeanUtil.copyProperties(newSpu, ProductSpuQueryDTO.class));
+        String cacheKey = productCacheUtils.buildCacheKey(BeanUtil.copyProperties(newSpu, ProductSpuQueryDTO.class));
 
         // 场景1：修改分类 最优先，新旧分类都要清分页缓存
         if (changeCategory) {
             // 清空旧分类分页缓存
-            productCacheUtil.clearCategoryPageCache(oldSpu.getCategoryId());
+            productCacheUtils.clearCategoryPageCache(oldSpu.getCategoryId());
             // 清空新分类分页缓存
-            productCacheUtil.clearCategoryPageCache(newSpu.getCategoryId());
+            productCacheUtils.clearCategoryPageCache(newSpu.getCategoryId());
             log.info("清除新旧分类下分页缓存成功");
         } else if (needClearCatePageCache) {
             // 场景2：未换分类，但修改名称/价格/上下架，仅清当前分类分页缓存
-            productCacheUtil.clearCategoryPageCache(newSpu.getCategoryId());
+            productCacheUtils.clearCategoryPageCache(newSpu.getCategoryId());
         }
             // 场景3：仅修改描述、sku等不影响分页的字段，不变动（(因为后台修改时根本不会传分页参数，系统根本找不到商品在哪个缓存key中)）
 
@@ -155,7 +153,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         doRemoveSpu(id);
 
         // 1. 事务提交完成后，再清理缓存（此时数据库数据已删除）
-        productCacheUtil.clearCategoryPageCache(categoryId);
+        productCacheUtils.clearCategoryPageCache(categoryId);
     }
 
     @Transactional(rollbackFor = Exception.class)

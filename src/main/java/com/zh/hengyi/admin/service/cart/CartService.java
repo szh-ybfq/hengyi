@@ -9,6 +9,7 @@ import com.zh.hengyi.admin.model.vo.cart.CartTotalVO;
 import org.redisson.api.RMap;
 
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author HENGGE
@@ -39,26 +40,22 @@ public interface CartService extends IService<Cart> {
     // 删除购物车已勾选商品
     void removeSelected(List<String> removeSkuKeys);
 
-    /**
-     * 修改选中状态 / 全选/全不选
-     */
+    // 修改选中状态 / 全选/全不选
     void updateSelect(CartSelectDTO dto);
 
-    /**
-     * 查询当前用户完整购物车（带汇总价格数量）
-     */
+    // 查询当前用户完整购物车（带汇总价格数量）
     CartTotalVO getCartList();
 
     // 登录校验
     Integer strToInt(Object obj);
-
-    // 登录校验
-    void validUserLogin();
 
     // 校验单条购物车记录是否存在
     void validCartExist( Long skuId);
 
     // 同步库中数据到缓存
     void reloadCartCache(List<Cart> dbCartList);
+
+    // 校验购物车缓存是否存在，不存在查库，有就回写缓存
+    Map<String, Integer> validCartCacheExist(Map<String, Integer> allCartMap);
 
 }
