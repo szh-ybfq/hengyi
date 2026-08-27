@@ -16,11 +16,10 @@ public class OrderDelayMqConfig {
 
     // 普通延迟队列（Time To Live 消息存活时间，30分钟过期）
     public static final String ORDER_DELAY_QUEUE = "order.delay.queue";
-//    public static final Integer NORMAL_TTL = 30 * 60 * 1000; // ms
-    public static final Integer NORMAL_TTL = 10 * 1000; // ms
-    /**
+    public static final Integer NORMAL_TTL = 30 * 60 * 1000; // ms
+    /*
      * 正常消息无法被消费、过期、被拒绝，就会变成 死信；
-     *     使用场景：消息过期（30分钟关闭订单），消费者主动决绝消息
+     *     使用场景：消息过期（30分钟关闭订单），消费者主动拒绝消息
      *     实现：生产者 → TTL延迟队列 (30min 等待) → 消息过期 → DLX 死信交换机 → DLQ 死信队列 → 消费者真正执行关单
      * */
     // 死信队列（DLQ Dead-Letter Queue）

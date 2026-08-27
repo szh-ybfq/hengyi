@@ -21,6 +21,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
@@ -60,27 +61,21 @@ public class ProductCacheUtils {
 
     // redis 商品缓存key前缀
     public static final String CACHE_KEY_PREFIX = "product:page:";
-
     // redission 分布式锁前缀
     public static final String LOCK_KEY_PREFIX = "lock:product:";
-
     // rabbitmq 消息名
     public static final String MQ_MESSAGE_NAME = "cacheKey";
 
     // Redis基础过期时间 30分钟
     private static final long BASE_TTL = 30 * 60L;
     private static final long CACHE_NULL_TTL = 5 * 60L;
-
     // 分布式锁等待时间 200ms、持有时间 1500ms
     private static final long LOCK_WAIT_TIME = 200L;
     private static final long LOCK_HOLD_TIME = 1500L;
-
     // 缓存延迟删除时间 500ms
     private static final long DELAY_DELETE_TIME = 500L;
-
     // 随机过期时间
     private static final Random RandomTtl = new Random();
-
     // 时间单位统一毫秒
     private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
@@ -89,16 +84,14 @@ public class ProductCacheUtils {
         //布隆过滤器从源头避免数据库根本没有的数据，防止缓存穿透
     // 布隆过滤器（hash结构）：键：布隆过滤器的名字，值：商品缓存key
     private static final String BLOOM_PRODUCT_KEY = "bloom:product:category";
-
     // 预估元素数量、误判率（判定这个key存在，但是实际上并不存在）（可按需调整）
     private static final long BLOOM_EXPECT_NUM = 100000;
     private static final double BLOOM_FALSE_RATE = 0.01;
-
     // 缓存预热开关（布隆缓存全部预热完成，才会开启）
     public volatile boolean bloomReady = false;    //volatile：保证可见性（一个线程修改变量，其他线程立刻读到最新值）
 
     // 启动线程执行时，预热布隆过滤器
-    @PostConstruct
+    /* @PostConstruct
     public void initBloom() {
         RBloomFilter<Long> bloom = getProductBloom();
         new Thread(() -> {
@@ -118,20 +111,31 @@ public class ProductCacheUtils {
             }
         }).start();
     }
+*/
+    // 初始化布隆过滤器
+    @Async
+    public void initBloom() {
+        RBloomFilter<Long> bloom = getProductBloom();
+        try {
+            // 已初始化会直接跳过。预估10万元素，误判率1%（已存在则不会重复初始化）
+            bloom.tryInit(BLOOM_EXPECT_NUM, BLOOM_FALSE_RATE);
+            // 全量查询数据库所有分类id，批量加到布隆
+            List<Long> categoryIds = productCategoryMapper.selectList(null).stream()
+                    .map(ProductCategory::getId)
+                    .collect(Collectors.toList());
+            categoryIds.forEach(bloom::add);
+            bloomReady = true;
+            log.info("商品分类布隆预热完成，加载分类数量：{}", categoryIds.size());
+        } catch (Exception e) {
+            log.error("分类布隆过滤器预热失败", e);
+            bloomReady = false;
+        }
+    }
 
     // 获取布隆过滤器（只存商品类别id Long类型）
     public RBloomFilter<Long> getProductBloom() {
         return redissonClient.getBloomFilter(BLOOM_PRODUCT_KEY);
     }
-
-    /*
-     * 本地分段锁：每个cacheKey对应一把独立ReentrantLock
-     * 最大缓存10000把锁，闲置5分钟自动销毁，防止内存溢出
-     */
-    private static final LoadingCache<String, ReentrantLock> LOCAL_LOCK_CACHE = com.github.benmanes.caffeine.cache.Caffeine.newBuilder()
-            .maximumSize(10000)
-            .expireAfterWrite(5, TimeUnit.MINUTES)
-            .build(lockKey -> new ReentrantLock());
 
     /**
      * 二级缓存查询：先本地Caffeine → Redis → DB回填
@@ -164,8 +168,7 @@ public class ProductCacheUtils {
             // redis缓存不为空null，再转为String，防止报错
             String redisStr = redisVal.toString();
             // 2.1 Redis有数据，直接返回，并回填本地缓存caffeine，下次不用再查redis
-                // 反序列化为目标分页对象，返回值是 Page 固定类型，但方法泛型是 T，编译器无法判定 Page 一定匹配 T，因此报类型不匹配错误。
-            T pageData = (T) jsonToObj(redisStr, Page.class);
+            T pageData = (T) jsonToObj(redisStr, Page.class);// 反序列化为目标分页对象，返回值是 Page 固定类型，但方法泛型是 T，编译器无法判定 Page 一定匹配 T，因此报类型不匹配错误。
             caffeineCache.put(cacheKey, pageData);
             log.info("查询二级缓存redis成功,并放入本地缓存Caffeine成功");
             return pageData;
@@ -177,27 +180,28 @@ public class ProductCacheUtils {
 //        int retryTimes = 5; // 最大重试次数
 //        long sleepMs = 100L; // 每次重试休眠毫秒
         try {
-//            // tryLock抢锁，未抢到内置3s等待，再休眠100ms，然后再自旋重试抢锁
-//            for (int i = 0; i < retryTimes; i++) {
-//                getLock = lock.tryLock(LOCK_WAIT_TIME, LOCK_HOLD_TIME, TimeUnit.SECONDS);
-//                if (getLock) {
-//                    break;
-//                }
-//                Thread.sleep(sleepMs);
-//            }
-//
-//            // 多次重试仍没拿到锁，才抛出异常，直接失败返回
-//            if (!getLock) {
-//                log.warn("获取商品缓存锁超时，重试{}次仍失败 key:{}", retryTimes, cacheKey);
-//                throw new BusinessException(ResultCode.CACHE_LOCK_TIMEOUT);
-//            }
+            /*
+            // tryLock抢锁，未抢到内置3s等待，再休眠100ms，然后再自旋重试抢锁
+            for (int i = 0; i < retryTimes; i++) {
+                getLock = lock.tryLock(LOCK_WAIT_TIME, LOCK_HOLD_TIME, TimeUnit.SECONDS);
+                if (getLock) {
+                    break;
+                }
+                Thread.sleep(sleepMs);
+            }
+
+            // 多次重试仍没拿到锁，才抛出异常，直接失败返回
+            if (!getLock) {
+                log.warn("获取商品缓存锁超时，重试{}次仍失败 key:{}", retryTimes, cacheKey);
+                throw new BusinessException(ResultCode.CACHE_LOCK_TIMEOUT);
+            }
 
             // 优化：仅尝试一次，最多阻塞3s，拿不到直接返回false
             getLock = lock.tryLock(LOCK_WAIT_TIME, LOCK_HOLD_TIME, TIME_UNIT);
             if (!getLock) {
                 log.warn("获取商品缓存锁超时，key:{}", cacheKey);
                 throw new BusinessException(ResultCode.CACHE_LOCK_TIMEOUT);
-            }
+            }*/
 
             // 双重校验：加锁后再次查Redis，防止其他线程已回填缓存（可能其他线程又已经写入了），并回填本地缓存
             Object doubleCheck = redissonClient.getBucket(cacheKey).get();
@@ -217,7 +221,7 @@ public class ProductCacheUtils {
             // 3. 执行数据库查询
             T dbData = dbQueryFunc.get();
 
-            // 4. 💎 缓存空值、布隆过滤器 处理缓存穿透（查询不存在商品，大量空请求击打DB），5分钟过期
+            // 4. 💎 数据根本不存在，缓存空值、布隆过滤器 处理缓存穿透（查询不存在商品，大量空请求击打DB），5分钟过期
             boolean emptyData;
             // 区分是集合还是普通对象，再判断是否为空数据
             if (dbData instanceof Collection) {
@@ -253,9 +257,12 @@ public class ProductCacheUtils {
             long randomTtl = BASE_TTL + RandomTtl.nextLong(60 * 60L);
             String pageJson = objToJson(dbData);
             redissonClient.getBucket(cacheKey).set(pageJson, randomTtl, TimeUnit.SECONDS);
+
             caffeineCache.put(cacheKey, dbData);
+
             log.info("查询数据库成功，写入一二级缓存成功");
             return dbData;
+
         } catch (BusinessException lockException) {
             throw lockException;// 锁专属异常直接上抛
         } catch (Exception e) {
@@ -267,7 +274,7 @@ public class ProductCacheUtils {
         }
     }
 
-    /*
+    /**
      * 1、清理单个缓存值
      */
     public void clearSingleCache(String cacheKey) {
@@ -280,7 +287,7 @@ public class ProductCacheUtils {
         log.info("清除单条分页key缓存成功");
     }
 
-    /*
+    /**
      * 2、清除商品该分类下所有分页缓存   （商品新增、删除、修改（分类、商品名、上下架、售价）时用）
      */
     public void clearCategoryPageCache(Long categoryId) {
@@ -302,8 +309,8 @@ public class ProductCacheUtils {
         log.info("清除商品该分类下所有分页缓存成功");
     }
 
-    /*
-     * 3、清理该分类下所有类型缓存    （分类新增、删除、启禁用时使用，分类修改不需要使用）
+    /**
+     * 3、清理该分类下所有类型缓存    （分类新增、启禁用时使用，分类修改不需要使用）
      *  TODO：将来做商品详情、首页搜索等等，缓存用到分类去设计的，全部要删除
      */
     public void clearCategoryAllCache(Long categoryId) {
@@ -315,10 +322,12 @@ public class ProductCacheUtils {
         // String CACHE_KEY_PREFIX2 = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
         // String CACHE_KEY_PREFIX3 = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
         String allPattern = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
+        String pagePatternIndex = CACHE_KEY_PREFIX + "*:*:*:" + 0 + ":*";
         batchDelRedisByPattern(allPattern);
+        batchDelRedisByPattern(pagePatternIndex);
 
         // 3、延迟二次全分类清理
-        sendDelayDeleteMsg("category_all", null, categoryId, DELAY_DELETE_TIME);
+        sendDelayDeleteMsg("category_all_type", null, categoryId, DELAY_DELETE_TIME);
     }
 
     /**
@@ -343,7 +352,7 @@ public class ProductCacheUtils {
         sendDelayDeleteMsg("single_key", cacheKey, null, delayMs);
     }
 
-    /*
+    /**
      * 发送 延迟删除消息 💎
      *      应用场景：高并发下，A修改，B在A修改事务间隙请求，因为快照读，读到脏数据，又写回了缓存，因此要再删除
      *      私有重载：统一发送延迟删除消息，兼容单key/分类分页/全分类
@@ -365,15 +374,12 @@ public class ProductCacheUtils {
         });
     }
 
-    public static class EmptyCacheMarker implements Serializable {
-        public static final EmptyCacheMarker INSTANCE = new EmptyCacheMarker();
-        private EmptyCacheMarker(){}
-    }
 
+    // 创建缓存key
     public String buildCacheKey(ProductSpuQueryDTO dto) {
         // 1. 数字参数：为空才转换，null转为"0"
-        String pageNum = Objects.toString(dto.getPageNum(), "0");
-        String pageSize = Objects.toString(dto.getPageSize(), "0");
+        String pageNum = Objects.toString(dto.getPageNum(), "1");
+        String pageSize = Objects.toString(dto.getPageSize(), "10");
         String categoryId = Objects.toString(dto.getCategoryId(), "0");
         String status = Objects.toString(dto.getStatus(), "1");
 
@@ -405,9 +411,14 @@ public class ProductCacheUtils {
         return JSONUtil.toBean(json, clazz);
     }
 
-    //空值判断
+    // 空值对象
+    public static class EmptyCacheMarker implements Serializable {
+        public static final EmptyCacheMarker INSTANCE = new EmptyCacheMarker();
+        private EmptyCacheMarker(){}
+    }
+
+    // 空值判断
     private boolean isEmptyMarker(Object obj) {
         return obj instanceof EmptyCacheMarker;
     }
-
 }

@@ -16,9 +16,17 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
 
     @Override
     public List<ProductSku> getBySpuId(Long spuId) {
+        if (spuId == null) {
+            return null;
+        }
         return baseMapper.selectListBySpuId(spuId);
     }
 
+
+
+
+
+    @Override
     public void validSkuExist(Long skuId) {
         ProductSku productSku = baseMapper.selectById(skuId);
         if (productSku == null) {

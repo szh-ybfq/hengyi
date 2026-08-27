@@ -29,7 +29,9 @@ public interface ProductSpuService extends IService<ProductSpu> {
 
     void removeById(Long id);
 
-    void validSpuExist(Long id);
+    ProductSpu validSpuExist(Long id);
+
+    void validSpuNameUnique(String spuName,Long id);
 
     void validSkuNotEmpty(List<ProductSkuAddDTO> skuList);
 }

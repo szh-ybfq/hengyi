@@ -16,22 +16,28 @@ import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductImage;
 import com.zh.hengyi.admin.model.entity.product.ProductSku;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
+import com.zh.hengyi.admin.model.entity.stock.Stock;
 import com.zh.hengyi.admin.model.vo.product.ProductSkuFormVO;
 import com.zh.hengyi.admin.model.vo.product.ProductSpuFormVO;
 import com.zh.hengyi.admin.model.vo.product.ProductSpuPageVO;
 import com.zh.hengyi.admin.service.product.ProductCategoryService;
 import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
+import com.zh.hengyi.admin.service.stock.StockService;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.cache.product.ProductCacheUtils;
+import com.zh.hengyi.common.utils.convert.ConvertUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +49,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     private final ProductSkuService skuService;
     private final ProductImageMapper imageMapper;
     private final ProductCacheUtils productCacheUtils;
+    private final StockService stockService;
 
     // 商品分页高并发接口优化
     @Override
@@ -63,53 +70,88 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
 
         String cacheKey = productCacheUtils.buildCacheKey(dto);
         return  productCacheUtils.getTwoLevelCache(cacheKey, ()->{
-            IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(dto.getPageNum(), dto.getPageSize()), dto);
+            Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
+            Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
+            IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(pageNum,pageSize), dto);
             return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
         });
     }
 
+    // 商品详情
     @Override
     public ProductSpuFormVO getSpuInfo(Long id) {
-        ProductSpu spu = baseMapper.selectById(id);
-        if (spu == null) {
-            throw new BusinessException(ResultCode.SPU_NOT_EXIST);
-        }
+        // 1、校验 spu是否存在
+        ProductSpu spu = validSpuExist(id);
+
+        // 2、将 spu、skuList转换VO，再组装返回
         ProductSpuFormVO vo = BeanUtil.copyProperties(spu, ProductSpuFormVO.class);
-        List<ProductSku> skuList = skuMapper.selectListBySpuId(id);
-        vo.setSkuList(BeanUtil.copyToList(skuList, ProductSkuFormVO.class));
+        List<ProductSkuFormVO> skuFormList = ConvertUtils.convertList(skuMapper.selectListBySpuId(id), ProductSkuFormVO.class);
+
+        // 3、查可用库存，为skuListVO设置库存
+        List<Stock> stockList = stockService.list(new LambdaQueryWrapper<Stock>().in(Stock::getSkuId, skuFormList.stream().map(ProductSkuFormVO::getId).collect(Collectors.toList())));
+        for(int i=0;i<stockList.size();i++){
+            skuFormList.get(i).setStock(stockList.get(i).getAvailableStock());
+        }
+
+        // 4、组装spuVO skuListVO为 spuFormVO返回
+        vo.setSkuList(skuFormList);
         return vo;
     }
 
+    // 添加商品
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void add(ProductSpuAddDTO dto) {
-        validAdd(dto);
+        validSaveData(BeanUtil.copyProperties(dto,ProductSpuEditDTO.class));
+
         ProductSpu spu = BeanUtil.copyProperties(dto, ProductSpu.class);
+        // 1 插入spu
         baseMapper.insert(spu);
-        Long spuId = spu.getId();
-        // 批量插入SKU
+
+        // 2 批量插入sku
         List<ProductSku> skuList = BeanUtil.copyToList(dto.getSkuList(), ProductSku.class);
-        skuList.forEach(sku -> sku.setSpuId(spuId));
+        skuList.forEach(sku -> sku.setSpuId( spu.getId()));//回填spuId
         skuService.saveBatch(skuList);
 
-        // 删除商品该分类下所有分页缓存
+        // 3 批量入库,生成库存记录
+        Map<Long,Integer> skuStockMap = new HashMap<>();
+        // 只能for循环这样写，因为 skuList和 skuAddDTOList 没法一起forEach
+        for(int i=0;i<skuList.size();i++){
+            skuStockMap.put(skuList.get(i).getId(), dto.getSkuList().get(i).getStock());
+        }
+        stockService.batchCreateStock(skuStockMap);
+
+        // 4 删除商品该分类下所有分页缓存
         productCacheUtils.clearCategoryPageCache(dto.getCategoryId());
     }
 
+    // 修改商品
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void edit(ProductSpuEditDTO dto) {
-        validEdit(dto);
+        validSaveData(dto);
+
         ProductSpu oldSpu = baseMapper.selectById(dto.getId());
         ProductSpu newSpu = BeanUtil.copyProperties(dto, ProductSpu.class);
         baseMapper.updateById(newSpu);
 
-        // 先删除旧SKU，再批量新增sku
+        // (1) 先删除旧sku、 旧库存记录
         Long spuId = dto.getId();
+        //库存记录删除放前面，防止先删sku，导致库存参数为空
+        stockService.batchLogicDeleteStock(skuMapper.selectSkuIdsBySpuId(spuId));
         skuMapper.delete(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getSpuId, spuId));
+        log.info("旧商品sku、 旧库存记录删除成功");
+
+        // (2) 再批量新增sku、新库存记录
         List<ProductSku> skuList = BeanUtil.copyToList(dto.getSkuList(), ProductSku.class);
         skuList.forEach(sku -> sku.setSpuId(spuId));
         skuService.saveBatch(skuList);
+
+        Map<Long,Integer> skuStockMap = new HashMap<>();
+        for(int i=0;i<skuList.size();i++){
+            skuStockMap.put(skuList.get(i).getId(), dto.getSkuList().get(i).getStock());
+        }
+        stockService.batchCreateStock(skuStockMap);
 
 
         // 💎💎 根据具体修改情况，采用不同延迟双删策略
@@ -140,6 +182,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // TODO【必做】任意商品修改、删除，都要清除商品详情缓存，商品新增可以不用
     }
 
+    // 删除商品
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void removeById(Long id) {
@@ -155,46 +198,53 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 1. 事务提交完成后，再清理缓存（此时数据库数据已删除）
         productCacheUtils.clearCategoryPageCache(categoryId);
     }
-
     @Transactional(rollbackFor = Exception.class)
     public void doRemoveSpu(Long id) {
         baseMapper.deleteById(id);
+        // 先删除库存记录，再删除sku列表
+        stockService.batchLogicDeleteStock(skuMapper.selectSkuIdsBySpuId(id));
         skuMapper.delete(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getSpuId, id));
         imageMapper.delete(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getSpuId, id));
     }
 
-    //  私有校验方法
-    public void validAdd(ProductSpuAddDTO dto) {
-        //校验商品分类存在
-        categoryService.validCatogaryExist(dto.getCategoryId());
-        // 校验spu名称重名
-        ProductSpu exist = baseMapper.selectOneBySpuName(dto.getSpuName(), null);
-        if (exist != null) {
-            throw new BusinessException(ResultCode.SPU_NAME_DUPLICATE);
-        }
-        // 校验sku列表是否为空
-        validSkuNotEmpty(dto.getSkuList());
-    }
 
-    public void validEdit(ProductSpuEditDTO dto) {
+
+
+
+    private void validSaveData(ProductSpuEditDTO dto) {
         //校验商品存在
-        validSpuExist(dto.getId());
+        if (dto.getId() != null) {
+            validSpuExist(dto.getId());
+        }
+
         //校验商品分类存在
         categoryService.validCatogaryExist(dto.getCategoryId());
+
         // 校验spu名称重名
-        ProductSpu exist = baseMapper.selectOneBySpuName(dto.getSpuName(), dto.getId());
-        if (exist != null) {
-            throw new BusinessException(ResultCode.SPU_NAME_DUPLICATE);
+        if (dto.getId() != null) {
+            validSpuNameUnique(dto.getSpuName(), dto.getId());
+        }else {
+            validSpuNameUnique(dto.getSpuName(), null);
         }
+
         // 校验sku列表是否为空
         validSkuNotEmpty(dto.getSkuList());
     }
 
     @Override
-    public void validSpuExist(Long id) {
-        ProductSpu db = baseMapper.selectById(id);
-        if (db == null) {
+    public ProductSpu validSpuExist(Long id) {
+        ProductSpu spu = baseMapper.selectById(id);
+        if (spu == null) {
             throw new BusinessException(ResultCode.SPU_NOT_EXIST);
+        }
+        return spu;
+    }
+
+    @Override
+    public void validSpuNameUnique(String spuName,Long id) {
+        ProductSpu exist = baseMapper.selectOneBySpuName(spuName,id);
+        if (exist != null) {
+            throw new BusinessException(ResultCode.SPU_NAME_DUPLICATE);
         }
     }
 

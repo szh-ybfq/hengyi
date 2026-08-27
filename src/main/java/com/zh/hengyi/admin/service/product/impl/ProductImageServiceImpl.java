@@ -2,8 +2,8 @@ package com.zh.hengyi.admin.service.product.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.model.entity.product.ProductImage;
-import com.zh.hengyi.admin.service.product.ProductImageService;
 import com.zh.hengyi.admin.mapper.product.ProductImageMapper;
+import com.zh.hengyi.admin.service.product.ProductImageService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2026-08-08 12:58:20
 */
 @Service
-public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, ProductImage> implements ProductImageService{
+public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, ProductImage> implements ProductImageService {
 
 }
 

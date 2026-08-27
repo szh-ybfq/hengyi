@@ -3,6 +3,7 @@ package com.zh.hengyi.admin.service.order;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zh.hengyi.admin.model.dto.order.OrderCreateDTO;
+import com.zh.hengyi.admin.model.dto.order.OrderCreateResDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryAdminDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryUserDTO;
 import com.zh.hengyi.admin.model.entity.order.Order;
@@ -32,6 +33,6 @@ public interface OrderService extends IService<Order> {
     // 校验订单是否本人创建
     void validOrderSelf(Order order,Long userId);
     // 校验订单状态
-    void validOrderStatus(Order order);
+    void validOrderStatusByCancel(Order order);
 
 }

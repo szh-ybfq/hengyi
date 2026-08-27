@@ -9,14 +9,6 @@ spring:
     url: jdbc:mysql://localhost:3306/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: 1234
-#    hikari: #pom依赖未导入
-#      # 核心参数
-#      maximum-pool-size: 60        # 最大连接数，32G机器压测推荐50~70，2000并发不会堵连接
-#      minimum-idle: 20            # 空闲常驻连接，避免频繁创建销毁连接
-#      idle-timeout: 300000        # 空闲连接5分钟释放
-#      max-lifetime: 1800000       # 连接最长存活30分钟（小于mysql默认8小时超时）
-##      connection-test-query: SELECT 1
-#      connection-timeout: 3000    # 获取连接等待超时3秒，避免卡死线程
   # redis
   data:
     redis:
@@ -80,6 +72,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
+# 压测日志配置
 #logging:
 #  level:
 #    root: warn                          # 全局只输出警告、错误，屏蔽info无关日志

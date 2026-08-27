@@ -22,8 +22,6 @@ public interface CartService extends IService<Cart> {
 
     RMap<String, Integer> getUserCartSelectRMap();
 
-    RMap<String, Integer> getUserCartSelectRMap(Long userId);
-
     /**
      * 加入购物车
      */
@@ -50,12 +48,12 @@ public interface CartService extends IService<Cart> {
     Integer strToInt(Object obj);
 
     // 校验单条购物车记录是否存在
-    void validCartExist( Long skuId);
+    Cart validCartExist( Long skuId);
 
     // 同步库中数据到缓存
     void reloadCartCache(List<Cart> dbCartList);
 
     // 校验购物车缓存是否存在，不存在查库，有就回写缓存
-    Map<String, Integer> validCartCacheExist(Map<String, Integer> allCartMap);
+    Map<String, Integer> validCartCacheExist(Map<String, Integer> allCartMap,Map<String, Integer> allSelectStatus);
 
 }

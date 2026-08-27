@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Mapper
 public interface ProductSkuMapper extends BaseMapper<ProductSku> {
@@ -14,6 +15,11 @@ public interface ProductSkuMapper extends BaseMapper<ProductSku> {
         return selectList(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getSpuId, spuId));
     }
 
+    default List<Long> selectSkuIdsBySpuId(Long spuId){
+        return selectList(new LambdaQueryWrapper<ProductSku>()
+                .eq(ProductSku::getSpuId,spuId)).stream()
+                .map(ProductSku::getId).collect(Collectors.toList());
+    }
 }
 
 

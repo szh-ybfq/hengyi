@@ -50,5 +50,4 @@ public class ProductSpu extends BaseEntity {
     private Integer saleCount;
 
     // status: 0下架 1上架
-
 }

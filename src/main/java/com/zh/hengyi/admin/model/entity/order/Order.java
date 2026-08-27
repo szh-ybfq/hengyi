@@ -60,7 +60,7 @@ public class Order extends BaseEntity {
     /**
      * 支付时间
      */
-    private Date payTime;
+    private LocalDateTime payTime;
 
     /**
      * 取消关闭时间

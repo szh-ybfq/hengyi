@@ -1,14 +1,14 @@
 package com.zh.hengyi.admin.controller.user.order;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zh.hengyi.admin.model.dto.order.OrderCreateDTO;
-import com.zh.hengyi.admin.model.dto.order.OrderQueryAdminDTO;
-import com.zh.hengyi.admin.model.dto.order.OrderQueryUserDTO;
-import com.zh.hengyi.admin.model.dto.order.OrderRefundApplyDTO;
+import com.zh.hengyi.admin.model.dto.order.*;
+import com.zh.hengyi.admin.model.dto.pay.PayCreateDTO;
 import com.zh.hengyi.admin.model.vo.order.OrderDetailVO;
 import com.zh.hengyi.admin.model.vo.order.OrderPageVO;
 import com.zh.hengyi.admin.service.order.OrderRefundService;
 import com.zh.hengyi.admin.service.order.OrderService;
+import com.zh.hengyi.admin.service.pay.PayRecordService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.internal.util.stereotypes.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -31,6 +32,10 @@ public class UserOrderController {
     @Autowired
     @Lazy
     private  OrderRefundService refundService;
+
+    @Autowired
+    @Lazy
+    private PayRecordService payRecordService;
 
     @PostMapping("/create")
     @Operation(summary = "购物车结算创建订单")

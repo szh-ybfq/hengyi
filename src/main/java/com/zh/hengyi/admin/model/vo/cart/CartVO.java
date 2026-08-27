@@ -5,9 +5,9 @@ import java.math.BigDecimal;
 
 @Data
 public class CartVO {
-    // 购物车主键id
+    // 购物车主键id todo:待修复：目前返回前端时为null
     private Long id;
-    // 用户id
+    // 用户id todo:可以考虑删掉，多余字段，没必要返回前端
     private Long userId;
     // sku id
     private Long skuId;

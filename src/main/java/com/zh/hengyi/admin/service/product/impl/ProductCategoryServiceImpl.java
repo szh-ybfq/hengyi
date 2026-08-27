@@ -95,7 +95,6 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
         log.info("清理该分类下所有类型缓存成功");
     }
 
-    //  私有校验方法
     public void validAdd(ProductCategoryAddDTO dto) {
         // 校验父分类存在
         validParentCatogaryExist(dto.getParentId());
@@ -137,6 +136,10 @@ public class ProductCategoryServiceImpl extends ServiceImpl<ProductCategoryMappe
             throw new BusinessException(ResultCode.CATEGORY_HAS_SPU_NOT_DELETE);
         }
     }
+
+
+
+
 
     @Override
     public void validCatogaryExist(Long id) {

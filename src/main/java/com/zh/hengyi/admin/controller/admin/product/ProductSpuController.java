@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,8 +24,8 @@ public class ProductSpuController {
     private final ProductSpuService spuService;
 
     @GetMapping("/page")
-    @Operation(summary = "SPU商品分页")
-    public Result<IPage<ProductSpuPageVO>> getPage(ProductSpuQueryDTO dto) {
+    @Operation(summary = "SPU商品分页")   // @Validated 针对Get RequestParam校验
+    public Result<IPage<ProductSpuPageVO>> getPage(@Validated ProductSpuQueryDTO dto) {
         return Result.success(spuService.getPage(dto));
     }
 

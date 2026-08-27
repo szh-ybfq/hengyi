@@ -2,8 +2,8 @@ package com.zh.hengyi.admin.service.product.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.model.entity.product.ProductParam;
-import com.zh.hengyi.admin.service.product.ProductParamService;
 import com.zh.hengyi.admin.mapper.product.ProductParamMapper;
+import com.zh.hengyi.admin.service.product.ProductParamService;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2026-08-08 12:58:20
 */
 @Service
-public class ProductParamServiceImpl extends ServiceImpl<ProductParamMapper, ProductParam> implements ProductParamService{
+public class ProductParamServiceImpl extends ServiceImpl<ProductParamMapper, ProductParam> implements ProductParamService {
 
 }
 
