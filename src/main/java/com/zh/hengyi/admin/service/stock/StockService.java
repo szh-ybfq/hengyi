@@ -35,6 +35,14 @@ public interface StockService extends IService<Stock> {
     StockVO getStockBySkuId(Long skuId);
     /** 批量查询sku库存 */
     List<StockVO> getStockListBySkuIds(List<Long> skuIds);
+    /**
+     * 秒杀商品扣减可用库存
+     */
+    void deductAvailableStock(Stock Stock,Integer seckillStock);
+    /**
+     * 秒杀商品归还可用库存
+     */
+    void revertAvailableStock(Stock Stock,Integer seckillStock);
     /** 校验sku库存记录存在，不存在自动初始化库存 */
     Stock validStockExist(Long skuId);
     /** 校验sku可用库存是否充足 */

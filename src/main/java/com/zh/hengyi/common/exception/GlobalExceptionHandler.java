@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,10 +32,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<?> validExceptionHandler(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldError().getDefaultMessage();
-        log.error("[Valid框架：请求参数错误]", e);
+        log.error("[请求参数错误]", e);
         return Result.error(ResultCode.VALID_PARAM_ERROR.getCode(), message);
     }
-
 
     // 4 Mybatis、SQL异常
     @ExceptionHandler(DuplicateKeyException.class)

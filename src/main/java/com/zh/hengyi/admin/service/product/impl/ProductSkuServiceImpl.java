@@ -30,7 +30,7 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
     public void validSkuExist(Long skuId) {
         ProductSku productSku = baseMapper.selectById(skuId);
         if (productSku == null) {
-            throw new BusinessException(ResultCode.SPU_NOT_EXIST);
+            throw new BusinessException(ResultCode.SKU_NOT_EXIST);
         }
     }
 }

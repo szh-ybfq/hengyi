@@ -230,7 +230,6 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 校验sku列表是否为空
         validSkuNotEmpty(dto.getSkuList());
     }
-
     @Override
     public ProductSpu validSpuExist(Long id) {
         ProductSpu spu = baseMapper.selectById(id);
@@ -239,7 +238,6 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         }
         return spu;
     }
-
     @Override
     public void validSpuNameUnique(String spuName,Long id) {
         ProductSpu exist = baseMapper.selectOneBySpuName(spuName,id);
@@ -247,7 +245,6 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             throw new BusinessException(ResultCode.SPU_NAME_DUPLICATE);
         }
     }
-
     @Override
     public void validSkuNotEmpty(List<ProductSkuAddDTO> skuList) {
         if (skuList == null || skuList.isEmpty()) {

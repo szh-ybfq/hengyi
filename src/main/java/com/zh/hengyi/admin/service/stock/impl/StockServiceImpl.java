@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.mapper.stock.StockMapper;
 import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
@@ -12,6 +13,7 @@ import com.zh.hengyi.admin.model.dto.stock.StockLogDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockRollbackDTO;
 import com.zh.hengyi.admin.model.entity.BaseEntity;
 import com.zh.hengyi.admin.model.entity.product.ProductSku;
+import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.admin.model.entity.stock.Stock;
 import com.zh.hengyi.admin.model.entity.stock.StockLog;
 import com.zh.hengyi.admin.model.vo.stock.StockVO;
@@ -38,8 +40,9 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
 
     private final StockMapper stockMapper;
     private final StockLogService stockLogService;
+    private final ProductSpuMapper spuMapper;
 
-    // 下单预占库存 痛点解决：乐观锁防止并发超卖，每条操作写入流水日志对账
+    // 1 下单   预占库存          痛点解决：乐观锁防止并发超卖，每条操作写入流水日志对账
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void lockStock(StockDeductDTO dto) {
@@ -68,10 +71,10 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
                     .remark("下单预占库存，订单号：" + dto.getOrderSn())
                     .build());
         }
-        log.info("订单{}预占库存全部完成", dto.getOrderSn());
+        log.info("订单{}，预占库存全部完毕", dto.getOrderSn());
     }
 
-    // 支付成功扣减锁定库存，转入已售
+    // 2 支付成功   扣减锁定库存，转入已售
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deductStockAfterPay(StockDeductDTO dto) {
@@ -99,7 +102,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         log.info("订单{}支付成功，库存扣减完成", dto.getOrderSn());
     }
 
-    // 订单取消回滚锁定库存至可售
+    // 3 订单取消回滚     锁定库存至可售
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void rollbackCancelStock(StockRollbackDTO dto) {
@@ -128,7 +131,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         log.info("订单{}取消，库存回滚完成", dto.getOrderId());
     }
 
-    // 退款回滚已售库存至可售
+    // 4 退款回滚   已售库存至可售
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void rollbackRefundStock(StockRollbackDTO dto) {
@@ -157,7 +160,38 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         log.info("订单{}退款，库存回滚完成", dto.getOrderId());
     }
 
-    // 批量创建sku库存记录，新增商品SKU时调用
+/*
+    // 5 秒杀订单取消回滚
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void rollbackSeckillStock(StockRollbackDTO dto) {
+        List<StockRollbackDTO.SkuNumDTO> skuNumList = dto.getSkuNumList();
+        for (StockRollbackDTO.SkuNumDTO skuNum : skuNumList) {
+            // 1. 订单取消回滚库存
+            Long skuId = skuNum.getSkuId();
+            Integer count = skuNum.getCount();
+            Stock stock = this.getOne(new LambdaQueryWrapper<Stock>().eq(Stock::getSkuId, skuId));
+            int row = stockMapper.rollbackStockByRefund(skuId, count, stock.getVersion());
+            if (row == 0) {
+                throw new BusinessException(ResultCode.STOCK_ROLLBACK_FAIL, "退款库存回滚失败");
+            }
+            // 2. 保存库存流水
+            saveStockLog(StockLogDTO.builder()
+                    .beforeStock(stock)
+                    .afterStock(baseMapper.selectById(stock.getId()))
+                    .orderId(dto.getOrderId())
+                    .orderSn(null)
+                    .seckillGoodsId(null)
+                    .changeType(StockConstant.CHANGE_TYPE_REFUND_ROLLBACK)
+                    .changeNum(count)
+                    .remark(dto.getRemark())
+                    .build());
+        }
+        log.info("订单{}退款，库存回滚完成", dto.getOrderId());
+    }
+*/
+
+    // 5 批量创建库存记录，新增商品SKU时调用
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchCreateStock(Map<Long,Integer> skuStockMap) {
@@ -175,7 +209,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         this.saveBatch(stockList);
     }
 
-    // 批量逻辑删除库存记录（修改商品删除旧SKU / 删除整个SPU）
+    // 6 批量删除库存记录（修改商品删除旧SKU / 删除整个SPU）
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchLogicDeleteStock(List<Long> skuIdList) {
@@ -186,7 +220,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         baseMapper.update(new LambdaUpdateWrapper<Stock>().in(Stock::getSkuId, skuIdList).set(BaseEntity::getDeleted,1));
     }
 
-    // 后台手动调整库存
+    // 7 后台手动调整库存
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void editStock(StockEditDTO dto) {
@@ -216,7 +250,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
                 .build());
     }
 
-    // 根据skuId获取库存
+    // 8 根据skuId获取库存
     @Override
     public StockVO getStockBySkuId(Long skuId) {
         // 校验skuid是否为空
@@ -228,7 +262,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         return BeanUtil.copyProperties(stock, StockVO.class);
     }
 
-    // 根据skuIds批量获取库存
+    // 9 根据skuIds批量获取库存
     @Override
     public List<StockVO> getStockListBySkuIds(List<Long> skuIds) {
         // 校验skuIds是否为空
@@ -249,8 +283,47 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         return ConvertUtils.convertList(stocks, StockVO.class);
     }
 
+    // 10 秒杀商品扣减剩余库存
+    @Override
+    public void deductAvailableStock(Stock stock,Integer seckillStock){
+        // 乐观锁扣减可用库存（执行时发现，version发生变化，说明另外线程已经修改，扣减失败）
+        Long skuId = stock.getSkuId();
+        int result = stockMapper.deductAvailableStock(skuId, seckillStock, stock.getVersion());
+        if (result == 0) {
+            throw new BusinessException(ResultCode.SECKILL_GOODS_AVAILABLE_STOCK_DEDUCT_FAIL);
+        }
+        // 保存库存流水
+        saveStockLog(StockLogDTO.builder()
+                .beforeStock(stock)
+                .afterStock(baseMapper.selectById(stock.getId()))
+                .seckillGoodsId(skuId)
+                .changeType(StockConstant.CHANGE_TYPE_SECKILL_DEDUCT)
+                .changeNum(seckillStock)
+                .remark("秒杀商品sku id：{}，扣减可用库存成功" + skuId)
+                .build());
+        log.info("秒杀商品sku id：{}，扣减可用库存成功，并写入库存流水",skuId);
+    };
 
-
+    // 11 秒杀商品归还可用库存
+    @Override
+    public void revertAvailableStock(Stock stock,Integer num){
+        Long skuId = stock.getSkuId();
+        // 乐观锁归还可用库存（执行时发现，version发生变化，说明另外线程已经修改，归还失败）
+        int result = stockMapper.revertAvailableStock(skuId, num, stock.getVersion());
+        if (result == 0) {
+            throw new BusinessException(ResultCode.SECKILL_GOODS_REVERT_STOCK__FAIL);
+        }
+        // 保存库存流水
+        saveStockLog(StockLogDTO.builder()
+                .beforeStock(stock)
+                .afterStock(baseMapper.selectById(stock.getId()))
+                .seckillGoodsId(skuId)
+                .changeType(StockConstant.CHANGE_TYPE_SECKILL_REVERT)
+                .changeNum(num)
+                .remark("秒杀商品sku id：{}，归还库存成功" + skuId)
+                .build());
+        log.info("秒杀商品sku id：{}，归还库存成功，并写入库存流水",skuId);
+    };
 
     // 校验sku库存记录存在
     @Override
@@ -266,6 +339,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
     @Override
     public void validStockAvailable(Stock stock,Integer count) {
         if (stock.getAvailableStock() < count) {
+            // todo:前端返回可以优化，返回商品名，编号，规格信息，别写什么sku啥的
             throw new BusinessException(ResultCode.STOCK_SHORTAGE, "商品sku:" + stock.getSkuId() + "可用库存不足");
         }
     }

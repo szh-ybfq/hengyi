@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/user/api/v1/cart")
 @Tag(name = "用户购物车模块")
 @RequiredArgsConstructor
-public class CartController {
+public class UserCartController {
     private final CartService cartService;
 
     @PostMapping("/add")

@@ -68,6 +68,31 @@ public interface StockMapper extends BaseMapper<Stock>{
                 .ge(Stock::getSoldStock, num);
         return update(updateWrapper);
     }
+
+    /**
+     * 5、秒杀商品扣减：可用库存 -
+     */
+    default int deductAvailableStock(Long skuId, Integer seckillStock, Long version) {
+        LambdaUpdateWrapper<Stock> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.setSql("available_stock = available_stock - " + seckillStock)
+                .setSql("version = version + 1")
+                .eq(Stock::getSkuId, skuId)
+                .eq(Stock::getVersion, version)
+                .ge(Stock::getAvailableStock, seckillStock);
+        return update(updateWrapper);
+    }
+
+    /**
+     * 6、秒杀商品归还：可用库存 +
+     */
+    default int revertAvailableStock(Long skuId, Integer num, Long version) {
+        LambdaUpdateWrapper<Stock> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.setSql("available_stock = available_stock + " + num)
+                .setSql("version = version + 1")
+                .eq(Stock::getSkuId, skuId)
+                .eq(Stock::getVersion, version);
+        return update(updateWrapper);
+    }
 }
 
 

@@ -17,7 +17,7 @@ import java.util.Date;
  * 支付流水记录表
  * @TableName payment_record
  */
-@TableName(value ="payment_record")
+@TableName(value ="pay_record")
 @Data
 public class PayRecord extends BaseEntity {
     /**

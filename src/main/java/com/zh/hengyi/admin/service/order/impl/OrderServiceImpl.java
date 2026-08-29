@@ -183,7 +183,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 2 校验 订单存在
         Order order = validOrderExist(orderId);
 
-        // 3 校验 只能取消待支付订单
+        // 2. 校验 待支付订单，（用户已支付、用户手动取消/退款、已发货）禁止取消订单
         validOrderStatusByCancel(order);
 
         // 4 校验 只能取消自己的订单
@@ -211,7 +211,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 1. 校验 订单存在
         Order order = validOrderExist(orderId);
 
-        // 2. 校验 待支付订单，已支付、已取消直接返回
+        // 2. 校验 待支付订单，（用户已支付、用户手动取消/退款、已发货）禁止取消订单
         validOrderStatusByCancel(order);
 
         // 3. 校验 只能取消自己的订单   (不用校验登录，这是和取消订单唯一区别)
@@ -328,7 +328,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public void validOrderStatusByCancel(Order order){
-        // 校验订单状态（只能取消待支付订单，已取消、已支付...全部可以）
+        // 校验订单状态（只能取消待支付订单，已取消、已支付...全都禁止）
         if(!Objects.equals(order.getStatus(), OrderConstant.ORDER_NO_PAY)){
             throw new BusinessException(ResultCode.ORDER_CANCEL_FORBID);
         }

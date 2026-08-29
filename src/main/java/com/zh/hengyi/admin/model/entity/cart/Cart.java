@@ -14,7 +14,7 @@ import java.util.Date;
  * 购物车表
  * @TableName cart
  */
-@TableName(value ="cart")
+@TableName(value ="product_cart")
 @Data
 public class Cart extends BaseEntity {
     /**

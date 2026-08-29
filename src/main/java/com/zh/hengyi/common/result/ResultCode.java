@@ -14,7 +14,6 @@ public enum ResultCode {
     PARAM_ERROR(400, "请求参数错误"),
     VALID_PARAM_ERROR(4001, "请求参数错误"),
 
-
     /**
      * 用户相关 41
      */
@@ -68,6 +67,7 @@ public enum ResultCode {
     SPU_NOT_EXIST(4421, "商品不存在"),
     SPU_NAME_DUPLICATE(4422, "商品名称已存在"),
     SPU_SKU_EMPTY(4423, "至少填写一条SKU规格"),
+    SKU_NOT_EXIST(4424, "该商品规格不存在"),
 
 
     CACHE_QUERY_EMPTY(4441, "缓存查询异常"),
@@ -114,13 +114,12 @@ public enum ResultCode {
     STOCK_LOG_SAVE_FAIL(4707, "库存操作日志保存失败"),
     STOCK_SKU_LIST_EMPTY(4708, "商品规格数据缺失，删除库存记录失败"),
 
-
     /**
      * 支付 4800
      */
     PAY_ERROR(4800, "支付异常"),
     PAY_RECORD_NOT_EXIST(4801,  "支付记录不存在"),
-    PAY_ORDER_NOT_EXIST(4810,  "支付时，订单不存在"),
+    PAY_ORDER_NOT_EXIST(4810,  "支付中：订单不存在"),
     // 4802 支付回调重复请求
     PAY_REPEAT_CALLBACK(4802, "支付流水已处理，禁止重复回调"),
     // 4803 订单无商品明细，无法完成支付后扣库存
@@ -136,7 +135,32 @@ public enum ResultCode {
     // 4808 支付超时失效
     PAY_OVERTIME_INVALID(4808,  "支付单已超时失效，请重新发起支付"),
     // 4809 支付回调签名校验失败
-    PAY_CALLBACK_SIGN_ERROR( 4809, "支付回调签名校验不通过，请求非法");
+    PAY_CALLBACK_SIGN_ERROR( 4809, "支付回调签名校验不通过，请求非法"),
+
+    /**
+     * 秒杀 4900
+     */
+    SECKILL_ERROR(4900, "秒杀异常"),
+    SECKILL_ACTIVITY_NOT_EXIST(4901, "秒杀活动不存在"),
+    SECKILL_ACTIVITY_EDIT_FORBID(4902, "只有未开始活动允许操作"),
+    SECKILL_ACTIVITY_RUNNING_FORBID(4903, "进行中秒杀活动不可操作"),
+    SECKILL_OPEN_FORBID(4904, "仅未开始活动支持开启"),
+    SECKILL_CLOSE_FORBID(4905, "仅进行中活动支持关闭"),
+    SECKILL_GOODS_EMPTY(4906, "请先添加秒杀商品再开启"),
+    SECKILL_GOODS_ADD_FORBID(4907, "进行中活动不能新增秒杀商品"),
+    SECKILL_GOODS_REPEAT(4908, "该商品规格已加入本场秒杀"),
+    SECKILL_GOODS_NOT_EXIST(4909, "秒杀商品不存在"),
+    SECKILL_STOCK_SHORTAGE(4910, "秒杀库存不足"),
+    SECKILL_USER_REPEAT_BUY(4911, "每人限购一件，不可重复抢购"),
+    SECKILL_ACTIVITY_NOT_RUNNING(4912, "秒杀活动未开始或已结束"),
+    SECKILL_BUY_FAIL(4913, "秒杀抢购失败，请重试"),
+    SECKILL_ORDER_CREATE_FAIL(4914, "秒杀订单创建失败"),
+    SECKILL_GOODS_STATUS_INVALID(4915, "秒杀商品状态异常"),
+    SECKILL_ACTIVITY_TIME_INVALID(4916, "活动时间参数非法"),
+    SECKILL_ACTIVITY_EXIST_GOODS(4917, "秒杀活动中含有秒杀商品，禁止删除"),
+    SECKILL_GOODS_AVAILABLE_STOCK_DEDUCT_FAIL(4918, "新增或修改秒杀商品，可用库存扣减失败，请重试"),
+    SECKILL_GOODS_REVERT_STOCK__FAIL(4919, "修改秒杀商品，秒杀商品归还库存失败，请重试"),
+    SECKILL_GOODS_NAME_NOT_UNIQUE(4920, "秒杀活动重名，请再检查名称");
 
     private final Integer code;
     private final String msg;
