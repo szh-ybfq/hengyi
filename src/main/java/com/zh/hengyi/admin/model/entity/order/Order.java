@@ -33,6 +33,11 @@ public class Order extends BaseEntity {
     private String orderSn;
 
     /**
+     * 订单类型
+     */
+    private Integer orderType;
+
+    /**
      * 下单用户id
      */
     private Long userId;

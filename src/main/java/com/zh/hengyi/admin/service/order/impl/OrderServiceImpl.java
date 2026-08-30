@@ -60,6 +60,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
+import static com.zh.hengyi.common.constant.SeckillConstant.ORDER_STATUS_NORMAL;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -135,6 +137,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 5. 构建订单主表
         Order order = Order.builder()
                            .orderSn(UUID.fastUUID().toString(true))
+                           .orderType(ORDER_STATUS_NORMAL)
                            .userId(userId)
                            .totalAmount(totalAmount)
                            .payAmount(totalAmount)// 暂不做优惠券抵扣
@@ -198,8 +201,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
         // ❗️❗️❗️TODO：重新放回购物车
 
-//        stockService.rollbackCancelStock();
         // ❗️❗️❗️TODO 迭代：取消订单回滚商品库存
+        stockService.rollbackCancelStock();
     }
 
     /**
@@ -224,10 +227,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         orderItemMapper.delete(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
         log.info("订单{}超时未支付，系统自动关闭成功", order.getOrderSn());
 
+        // 6. 取消订单回滚库存
+        stockService.rollbackCancelStock(orderId);
+
+
         // ❗️❗️❗️TODO：重新放回购物车
 
         // ❗️❗️❗️TODO：此处调用库存服务，返还库存（你后续库存模块实现）
-        // stockService.rollbackStockByOrder(orderId);
     }
 
     /**

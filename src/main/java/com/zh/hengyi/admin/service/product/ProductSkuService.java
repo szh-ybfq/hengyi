@@ -13,5 +13,5 @@ import java.util.List;
 */
 public interface ProductSkuService extends IService<ProductSku> {
     List<ProductSku> getBySpuId(Long spuId);
-    void validSkuExist(Long skuId);
+    ProductSku validSkuExist(Long skuId);
 }

@@ -23,6 +23,7 @@ import com.zh.hengyi.admin.model.vo.seckill.SeckillGoodsVO;
 import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
 import com.zh.hengyi.admin.service.seckill.SeckillActivityService;
+import com.zh.hengyi.admin.service.seckill.SeckillGoodsService;
 import com.zh.hengyi.admin.service.stock.StockService;
 import com.zh.hengyi.common.constant.SeckillConstant;
 import com.zh.hengyi.common.exception.BusinessException;
@@ -36,6 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.zh.hengyi.common.constant.SeckillConstant.GOODS_SOLD;
+import static com.zh.hengyi.common.constant.SeckillConstant.STATUS_RUNNING;
 
 /**
 * @author HENGGE
@@ -48,6 +50,7 @@ import static com.zh.hengyi.common.constant.SeckillConstant.GOODS_SOLD;
 public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMapper, SeckillActivity> implements SeckillActivityService {
 
     private final SeckillGoodsMapper seckillGoodsMapper;
+    private final SeckillGoodsService seckillGoodsService;
     private final ProductSkuService skuService;
     private final ProductSpuService spuService;
     private final RedissonClient redissonClient;
@@ -192,7 +195,7 @@ public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMappe
         }
         log.info("秒杀活动{}：Redis预热完成", activityId);
 
-        activity.setStatus(SeckillConstant.STATUS_RUNNING);
+        activity.setStatus(STATUS_RUNNING);
         this.updateById(activity);
     }
 
@@ -204,7 +207,7 @@ public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMappe
         SeckillActivity activity = validActivitExist(activityId);
 
         // 校验：秒杀活动必须是进行中
-        if (!SeckillConstant.STATUS_RUNNING.equals(activity.getStatus())) {
+        if (!STATUS_RUNNING.equals(activity.getStatus())) {
             throw new BusinessException(ResultCode.SECKILL_CLOSE_FORBID, "仅进行中活动支持关闭");
         }
 
@@ -261,7 +264,7 @@ public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMappe
     // 校验：活动不能处于进行中，用于编辑、删除、新增商品
     @Override
     public void validSeckillActivityNotRunning(SeckillActivity activity) {
-        if (SeckillConstant.STATUS_RUNNING.equals(activity.getStatus())) {
+        if (STATUS_RUNNING.equals(activity.getStatus())) {
             throw new BusinessException(ResultCode.SECKILL_ACTIVITY_RUNNING_FORBID);
         }
     }
@@ -286,6 +289,15 @@ public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMappe
         SeckillActivity goods = baseMapper.selectOne(new LambdaQueryWrapper<SeckillActivity>().eq(SeckillActivity::getActivityName, name));
         if (goods!=null) {
             throw new BusinessException(ResultCode.SECKILL_GOODS_NAME_NOT_UNIQUE);
+        }
+    }
+    // 校验：根据秒杀商品查 秒杀活动是否开启
+    @Override
+    public void validSeckillActivityStartBySeckillGoods(Long seckillGoodsId) {
+        SeckillGoods goods = seckillGoodsService.validSeckillGoodsExist(seckillGoodsId);
+        SeckillActivity seckillActivity = baseMapper.selectById(goods.getActivityId());
+        if (seckillActivity.getStatus()!=STATUS_RUNNING) {
+            throw new BusinessException(ResultCode.SECKILL_ACTIVITY_NOT_OPEN);
         }
     }
 }

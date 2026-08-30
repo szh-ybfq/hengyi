@@ -18,6 +18,7 @@ public final class StockConstant {
     public static final Integer CHANGE_TYPE_ADMIN_EDIT = 5; //后台手动调整
     public static final Integer CHANGE_TYPE_SECKILL_DEDUCT = 6; //秒杀商品扣减库存
     public static final Integer CHANGE_TYPE_SECKILL_REVERT = 7; //秒杀商品归还库存
+    public static final Integer CHANGE_TYPE_SECKILL_LOCK = 8; //秒杀下单锁定
 
     // 私有构造，禁止实例化
     private StockConstant() {

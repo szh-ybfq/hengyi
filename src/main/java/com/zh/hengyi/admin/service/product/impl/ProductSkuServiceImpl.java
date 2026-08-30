@@ -27,10 +27,11 @@ public class ProductSkuServiceImpl extends ServiceImpl<ProductSkuMapper, Product
 
 
     @Override
-    public void validSkuExist(Long skuId) {
+    public ProductSku validSkuExist(Long skuId) {
         ProductSku productSku = baseMapper.selectById(skuId);
         if (productSku == null) {
             throw new BusinessException(ResultCode.SKU_NOT_EXIST);
         }
+        return  productSku;
     }
 }

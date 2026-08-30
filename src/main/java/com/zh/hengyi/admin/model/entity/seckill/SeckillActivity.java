@@ -45,19 +45,4 @@ public class SeckillActivity extends BaseEntity {
      */
     private Integer status;
 
-    /**
-     * 
-     */
-    private Integer deleted;
-
-    private Long createBy;
-
-    private LocalDateTime createTime;
-
-    private Long updateBy;
-
-    private LocalDateTime updateTime;
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

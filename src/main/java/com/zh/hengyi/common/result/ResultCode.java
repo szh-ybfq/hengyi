@@ -104,7 +104,7 @@ public enum ResultCode {
     STOCK_SHORTAGE(4702, "商品库存不足，无法下单"),
     // 4703 锁定库存不足（支付扣减失败）
     STOCK_LOCK_SHORT(4703, "订单锁定库存不足，支付扣减失败"),
-    // 4704 库存操作乐观锁冲突/并发抢占失败
+    // 4704 库存操作乐观锁冲突、并发抢占失败
     STOCK_OPTIMISTIC_LOCK_FAIL(4704, "库存并发抢占失败，请重试"),
     // 4705 库存回滚失败（取消订单/退款）
     STOCK_ROLLBACK_FAIL(4705, "库存回滚操作失败"),
@@ -151,8 +151,6 @@ public enum ResultCode {
     SECKILL_GOODS_REPEAT(4908, "该商品规格已加入本场秒杀"),
     SECKILL_GOODS_NOT_EXIST(4909, "秒杀商品不存在"),
     SECKILL_STOCK_SHORTAGE(4910, "秒杀库存不足"),
-    SECKILL_USER_REPEAT_BUY(4911, "每人限购一件，不可重复抢购"),
-    SECKILL_ACTIVITY_NOT_RUNNING(4912, "秒杀活动未开始或已结束"),
     SECKILL_BUY_FAIL(4913, "秒杀抢购失败，请重试"),
     SECKILL_ORDER_CREATE_FAIL(4914, "秒杀订单创建失败"),
     SECKILL_GOODS_STATUS_INVALID(4915, "秒杀商品状态异常"),
@@ -160,7 +158,10 @@ public enum ResultCode {
     SECKILL_ACTIVITY_EXIST_GOODS(4917, "秒杀活动中含有秒杀商品，禁止删除"),
     SECKILL_GOODS_AVAILABLE_STOCK_DEDUCT_FAIL(4918, "新增或修改秒杀商品，可用库存扣减失败，请重试"),
     SECKILL_GOODS_REVERT_STOCK__FAIL(4919, "修改秒杀商品，秒杀商品归还库存失败，请重试"),
-    SECKILL_GOODS_NAME_NOT_UNIQUE(4920, "秒杀活动重名，请再检查名称");
+    SECKILL_GOODS_NAME_NOT_UNIQUE(4920, "秒杀活动重名，请再检查名称"),
+    SECKILL_ACTIVITY_NOT_OPEN(4921, "秒杀未开启"),
+    SECKILL_OUT_USER_LIMIT(4922, "超出每人限购数量"),
+    SECKILL_ORDER_NOT_EXIST(4923, "秒杀订单不存在");
 
     private final Integer code;
     private final String msg;

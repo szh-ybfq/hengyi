@@ -46,6 +46,11 @@ public class SeckillGoods extends BaseEntity {
     private Integer seckillStock;
 
     /**
+     * 秒杀锁定
+     */
+    private Integer seckillLock;
+
+    /**
      * 已售出
      */
     private Integer seckillSold;
@@ -60,18 +65,4 @@ public class SeckillGoods extends BaseEntity {
      */
     private Integer version;
 
-    private Integer status;
-
-    private Integer deleted;
-
-    private Long createBy;
-
-    private LocalDateTime createTime;
-
-    private Long updateBy;
-
-    private LocalDateTime updateTime;
-
-    @TableField(exist = false)
-    private static final long serialVersionUID = 1L;
 }

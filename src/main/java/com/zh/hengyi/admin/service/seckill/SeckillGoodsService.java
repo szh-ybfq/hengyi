@@ -9,5 +9,5 @@ import com.zh.hengyi.admin.model.entity.seckill.SeckillGoods;
 * @createDate 2026-08-28 07:28:08
 */
 public interface SeckillGoodsService extends IService<SeckillGoods> {
-
+    SeckillGoods validSeckillGoodsExist(Long seckillGoodsId);
 }

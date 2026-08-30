@@ -45,5 +45,6 @@ public interface SeckillActivityService extends IService<SeckillActivity> {
     void validSeckillActivityNotStart(SeckillActivity activity);
     void validSeckillActivityExistGoods(Long activityId);
     void validSeckillActivityNameUnique(String name);
+    void validSeckillActivityStartBySeckillGoods(Long seckillGoodsId);
 }
 

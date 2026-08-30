@@ -1,29 +1,30 @@
 package com.zh.hengyi.admin.controller.user.seckill;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zh.hengyi.admin.model.dto.order.SeckillOrderCreateDTO;
-import com.zh.hengyi.admin.model.dto.seckill.SeckillActivityFormDTO;
-import com.zh.hengyi.admin.model.dto.seckill.SeckillActivityQueryDTO;
-import com.zh.hengyi.admin.model.vo.seckill.SeckillActivityVO;
-import com.zh.hengyi.admin.service.seckill.SeckillActivityService;
+import com.zh.hengyi.admin.model.dto.seckill.SeckillOrderCreateDTO;
 import com.zh.hengyi.admin.service.seckill.SeckillOrderService;
 import com.zh.hengyi.common.result.Result;
+import com.zh.hengyi.common.utils.security.UserUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user/api/v1/seckill")
 @RequiredArgsConstructor
 public class UserSeckillController {
+
     private final SeckillOrderService seckillOrderService;
 
-    // 1 创建秒杀单
+    /**
+     * 创建秒杀下单请求
+     * Sentinel 在这个接口配置：热点参数限流、QPS限流
+     */
     @PostMapping("/create")
-    public Result<Void> page(@Valid @RequestBody SeckillOrderCreateDTO dto){
-
+    public Result<Void> createSeckillOrder(@Valid @RequestBody SeckillOrderCreateDTO dto){
+        // 校验登录
+        Long userId = UserUtils.validUserLogin().getId();
+        seckillOrderService.submitSeckillOrder(dto);
         return Result.success();
     }
-
 }
+

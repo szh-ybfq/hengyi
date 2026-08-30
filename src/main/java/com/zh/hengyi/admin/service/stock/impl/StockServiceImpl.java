@@ -283,7 +283,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         return ConvertUtils.convertList(stocks, StockVO.class);
     }
 
-    // 10 秒杀商品扣减剩余库存
+    // 10 新增秒杀活动时：秒杀商品扣减剩余库存
     @Override
     public void deductAvailableStock(Stock stock,Integer seckillStock){
         // 乐观锁扣减可用库存（执行时发现，version发生变化，说明另外线程已经修改，扣减失败）
@@ -304,7 +304,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
         log.info("秒杀商品sku id：{}，扣减可用库存成功，并写入库存流水",skuId);
     };
 
-    // 11 秒杀商品归还可用库存
+    // 11 编辑秒杀活动时：秒杀商品归还可用库存
     @Override
     public void revertAvailableStock(Stock stock,Integer num){
         Long skuId = stock.getSkuId();
@@ -324,6 +324,10 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
                 .build());
         log.info("秒杀商品sku id：{}，归还库存成功，并写入库存流水",skuId);
     };
+
+
+
+
 
     // 校验sku库存记录存在
     @Override
