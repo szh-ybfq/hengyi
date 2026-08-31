@@ -34,5 +34,7 @@ public interface OrderService extends IService<Order> {
     void validOrderSelf(Order order,Long userId);
     // 校验订单状态
     void validOrderStatusByCancel(Order order);
+    // 更新订单主表为取消状态
+    void setOrderCancel(Long orderId);
 
 }

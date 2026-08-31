@@ -2,6 +2,7 @@ package com.zh.hengyi.admin.service.seckill;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zh.hengyi.admin.model.dto.order.OrderRefundApplyDTO;
 import com.zh.hengyi.admin.model.dto.seckill.SeckillActivityFormDTO;
 import com.zh.hengyi.admin.model.dto.seckill.SeckillActivityQueryDTO;
 import com.zh.hengyi.admin.model.dto.seckill.SeckillOrderCreateDTO;
@@ -17,15 +18,21 @@ import java.util.List;
 
 public interface SeckillOrderService extends IService<SeckillGoods> {
 
-    /**
-     * 用户提交秒杀请求：全部Redis层校验，通过发送MQ直接返回
-     */
+    // 1.1 用户提交秒杀请求：全部Redis层校验，发送MQ直接返回
     void submitSeckillOrder(SeckillOrderCreateDTO dto);
 
-    /**
-     * MQ消费者调用：真正执行数据库下单逻辑，所有业务写在这里
-     */
+    // 1.2 MQ消费者调用：
     void consumeSeckillOrder(SeckillOrderMsgDTO msgDTO);
+
+    // 2 取消订单
+    void cancelSeckillOrder(Long orderId);
+
+    // 3 30分钟超时关单
+    void closeSeckillOrderTimeout(Long orderId);
+
+//    // 4 用户退款
+//    void applySeckillRefund(OrderRefundApplyDTO dto);
+
 
     Order validSeckillOrderExist(Long seckilLId);
 

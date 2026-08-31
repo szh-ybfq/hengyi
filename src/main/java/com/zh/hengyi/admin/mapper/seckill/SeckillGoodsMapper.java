@@ -16,7 +16,7 @@ import org.apache.ibatis.annotations.Mapper;
 public interface SeckillGoodsMapper extends BaseMapper<SeckillGoods> {
 
     // 秒杀下单预占库存：增加锁定seckill_lock，乐观锁version
-    default int lockSeckillGoodsStock(Long seckillGoodsId, Integer count, Integer version) {
+    default int lockSeckillGoodsStock(Long seckillGoodsId, Integer count, Long version) {
         return update(new LambdaUpdateWrapper<SeckillGoods>()
                     .setSql("seckill_stock = seckill_stock - " + count)
                     .setSql("seckill_lock = seckill_lock + " + count)
@@ -28,7 +28,7 @@ public interface SeckillGoodsMapper extends BaseMapper<SeckillGoods> {
     }
 
     // 支付成功：扣锁定库存，加到已售出 seckill_sold += count , seckill_lock -= count
-    default int deductLockToSold(Long seckillGoodsId, Integer count, Integer version) {
+    default int deductLockToSold(Long seckillGoodsId, Integer count, Long version) {
         return update(new LambdaUpdateWrapper<SeckillGoods>()
                     .setSql("seckill_lock = seckill_lock - " + count)
                     .setSql("seckill_sold = seckill_sold + " + count)
@@ -39,7 +39,7 @@ public interface SeckillGoodsMapper extends BaseMapper<SeckillGoods> {
         );
     }
     // 订单取消/超时关闭：释放锁定库存 seckill_lock -= count
-    default int rollbackLockStock(Long seckillGoodsId, Integer count, Integer version) {
+    default int rollbackLockStock(Long seckillGoodsId, Integer count, Long version) {
         return update(new LambdaUpdateWrapper<SeckillGoods>()
                     .setSql("seckill_stock = seckill_stock + " + count)
                     .setSql("seckill_lock = seckill_lock - " + count)

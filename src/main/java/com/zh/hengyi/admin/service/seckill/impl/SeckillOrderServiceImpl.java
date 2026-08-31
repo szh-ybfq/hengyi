@@ -16,6 +16,7 @@ import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.mapper.seckill.SeckillActivityMapper;
 import com.zh.hengyi.admin.mapper.seckill.SeckillGoodsMapper;
 import com.zh.hengyi.admin.mapper.stock.StockLogMapper;
+import com.zh.hengyi.admin.model.dto.order.OrderRefundApplyDTO;
 import com.zh.hengyi.admin.model.dto.seckill.*;
 import com.zh.hengyi.admin.model.dto.stock.StockLogDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockLogSeckillDTO;
@@ -29,6 +30,7 @@ import com.zh.hengyi.admin.model.entity.stock.Stock;
 import com.zh.hengyi.admin.model.entity.stock.StockLog;
 import com.zh.hengyi.admin.model.vo.seckill.SeckillActivityVO;
 import com.zh.hengyi.admin.model.vo.seckill.SeckillGoodsVO;
+import com.zh.hengyi.admin.service.order.OrderService;
 import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
 import com.zh.hengyi.admin.service.seckill.SeckillActivityService;
@@ -43,6 +45,7 @@ import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.security.UserUtils;
 import com.zh.hengyi.component.rabbitmq.order.OrderDelayProducer;
+import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -57,6 +60,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -80,8 +84,9 @@ public class SeckillOrderServiceImpl extends ServiceImpl<SeckillGoodsMapper,Seck
     private final RabbitTemplate rabbitTemplate;
     private final RedissonClient redissonClient;
     private final OrderDelayProducer orderDelayProducer;
+    private final OrderService orderService;
 
-    // 1.1 Redis层拦截，发送MQ消息返回
+    // 1.1 Redis+lua层拦截（削峰），发送MQ消息
     @Override
     public void submitSeckillOrder(SeckillOrderCreateDTO dto) {
         //校验用户是否登录
@@ -154,7 +159,7 @@ public class SeckillOrderServiceImpl extends ServiceImpl<SeckillGoodsMapper,Seck
     }
 
 
-    // 1.2 MQ消费者调用，执行下秒杀单
+    // 1.2 MQ消费（填谷），执行下秒杀单
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void consumeSeckillOrder(SeckillOrderMsgDTO msgDTO) {
@@ -218,21 +223,23 @@ public class SeckillOrderServiceImpl extends ServiceImpl<SeckillGoodsMapper,Seck
             orderItemMapper.insert(orderItem);
 
             // 6、保存秒杀库存流水
-            saveStockLog(StockLogSeckillDTO.builder()
-                    .beforeStock(seckillGoods)
-                    .afterStock(baseMapper.selectById(seckillGoodsId))
-                    .orderId(orderId)
-                    .orderSn(orderSn)
-                    .seckillGoodsId(seckillGoodsId)
-                    .changeType(StockConstant.CHANGE_TYPE_SECKILL_LOCK)
-                    .changeNum(buyCount)
-                    .remark("秒杀下单预占库存，订单号：" + orderSn)
-                    .build()
+            saveStockLog(
+                    StockLogSeckillDTO.builder()
+                        .beforeStock(seckillGoods)
+                        .afterStock(baseMapper.selectById(seckillGoodsId))
+                        .skuId(seckillGoods.getSkuId())
+                        .orderId(orderId)
+                        .orderSn(orderSn)
+                        .seckillGoodsId(seckillGoodsId)
+                        .changeType(StockConstant.CHANGE_TYPE_SECKILL_LOCK)
+                        .changeNum(buyCount)
+                        .remark("秒杀下单预占库存，订单号：" + orderSn)
+                        .build()
             );
 
             // 7、发送30分钟延迟关单消息
             orderDelayProducer.sendOrderDelayMsg(orderId);
-            log.info("MQ消费秒杀下单成功,msgId:{},orderId:{},orderSn:{}",msgDTO.getMsgId(),orderId,orderSn);
+            log.info("秒杀下单，MQ消费成功,msgId:{},orderId:{},orderSn:{}",msgDTO.getMsgId(),orderId,orderSn);
 
         }catch (Exception e){
             log.error("秒杀消费异常 msgId:{}",msgDTO.getMsgId(),e);
@@ -245,6 +252,90 @@ public class SeckillOrderServiceImpl extends ServiceImpl<SeckillGoodsMapper,Seck
     }
 
 
+    // 2 取消订单
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelSeckillOrder(Long orderId) {
+        //1、校验：登录
+        Long userId = UserUtils.validUserLogin().getId();
+
+        //2、校验：秒杀订单存在
+        Order order = validSeckillOrderExist(orderId);
+
+        //3、校验：只能操作自己的订单
+        orderService.validOrderSelf(order,userId);
+
+        //4、校验：只有待支付允许取消
+        System.out.println(order);
+        orderService.validOrderStatusByCancel(order);
+
+        //5、6、7、8、9、 更新订单主表 删除订单子项 取消订单回滚锁定库存 保存秒杀库存流水  用户已购缓存回滚
+        closeOrder(order,
+                "用户"+userId+"手动取消订单"+order.getOrderSn()+"成功");
+
+        log.info("用户手动取消秒杀订单成功 userId:{},orderSn:{}",userId,order.getOrderSn());
+    }
+
+
+    // 3 30分钟超时关单
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void closeSeckillOrderTimeout(Long orderId) {
+
+        //1、校验：秒杀订单存在
+        Order order = validSeckillOrderExist(orderId);
+
+        //2、校验：只能操作自己的订单
+        orderService.validOrderSelf(order, SecurityUtils.getLoginUser().getUser().getId());
+
+        //3、校验：只有待支付允许取消
+        orderService.validOrderStatusByCancel(order);
+
+        //5、6、7、8、9、 更新订单主表 删除订单子项 取消订单回滚锁定库存 保存秒杀库存流水  用户已购缓存回滚
+        closeOrder(order,
+                "秒杀订单超时自动关闭成功 orderSn:"+order.getOrderSn());
+
+        log.info("秒杀订单超时自动关闭成功 orderSn:{}",order.getOrderSn());
+    }
+
+    // 关闭订单（库表）
+    private void closeOrder(Order order,String remark){
+        //  5 更新订单主表 订单状态、取消时间
+        Long orderId = order.getId();
+        orderService.setOrderCancel(orderId);
+
+        //  6 删除订单子项
+        List<OrderItem> orderItems = orderItemMapper.selectByOrderId(orderId);
+        orderItemMapper.delete(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+
+        //  7 取消订单回滚锁定库存
+        orderItems.forEach(item -> {
+            // 先查旧数据
+            SeckillGoods oldGoods = seckillGoodsMapper.selectOne(new LambdaQueryWrapper<SeckillGoods>().eq(SeckillGoods::getSkuId, item.getSkuId()));
+
+            //  取消订单回滚锁定库存
+            int i = baseMapper.rollbackLockStock(oldGoods.getId(), item.getCount(), oldGoods.getVersion());
+            if (i == 0) {
+                throw new BusinessException(ResultCode.STOCK_SECKILL_ROLLBACK_FAIL);
+            }
+            //  8 保存秒杀库存流水
+            saveStockLog(
+                    StockLogSeckillDTO.builder()
+                        .beforeStock(oldGoods)
+                        .afterStock(seckillGoodsMapper.selectById(oldGoods.getId()))
+                        .skuId(oldGoods.getSkuId())
+                        .orderId(orderId)
+                        .orderSn(order.getOrderSn())
+                        .seckillGoodsId(oldGoods.getId())
+                        .changeType(StockConstant.CHANGE_TYPE_SECKILL_CANCEL_ROLLBACK)
+                        .changeNum(item.getCount())
+                        .remark(remark)
+                        .build());
+
+            // 9 用户已购缓存回滚
+            redissonClient.getBucket(SECKILL_USER_BUY_PREFIX + oldGoods.getId() + ":" + order.getUserId()).delete();
+        });
+    }
 
 
 
@@ -277,8 +368,12 @@ public class SeckillOrderServiceImpl extends ServiceImpl<SeckillGoodsMapper,Seck
 
         stockLog.setRemark(logDto.getRemark());
 
-        stockLogMapper.insert(stockLog);
+        int insert = stockLogMapper.insert(stockLog);
+        if(insert == 0){
+            throw new BusinessException(ResultCode.STOCK_LOG_SAVE_FAIL);
+        }
     }
+
 }
 
 

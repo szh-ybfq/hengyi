@@ -9,12 +9,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.order.OrderItemMapper;
 import com.zh.hengyi.admin.mapper.order.OrderMapper;
+import com.zh.hengyi.admin.mapper.stock.StockMapper;
 import com.zh.hengyi.admin.model.dto.order.OrderCreateDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderCreateResDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryAdminDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryUserDTO;
 import com.zh.hengyi.admin.model.dto.pay.PayCreateDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
+import com.zh.hengyi.admin.model.dto.stock.StockRollbackDTO;
 import com.zh.hengyi.admin.model.entity.order.Order;
 import com.zh.hengyi.admin.model.entity.order.OrderItem;
 import com.zh.hengyi.admin.model.entity.order.OrderRefund;
@@ -32,10 +34,7 @@ import com.zh.hengyi.admin.service.pay.PayRecordService;
 import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
 import com.zh.hengyi.admin.service.stock.StockService;
-import com.zh.hengyi.common.constant.CartConstant;
-import com.zh.hengyi.common.constant.OrderConstant;
-import com.zh.hengyi.common.constant.PayConstant;
-import com.zh.hengyi.common.constant.StockConstant;
+import com.zh.hengyi.common.constant.*;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.security.UserUtils;
@@ -79,10 +78,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private Executor orderTaskExecutor;
     @Autowired
     private OrderItemMapper orderItemMapper;
+    @Autowired
+    private StockMapper stockMapper;
 
-    /**
-     * 1 购物车结算创建订单
-     */
+    // 1 购物车结算创建订单
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createOrder(OrderCreateDTO dto) {
@@ -159,8 +158,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         StockDeductDTO stockDeDTO = new StockDeductDTO();
         stockDeDTO.setOrderId(orderId);
         stockDeDTO.setOrderSn(order.getOrderSn());
-        stockDeDTO.setSkuNumList(orderItemList.stream()
-                .map(
+        stockDeDTO.setSkuNumList(orderItemList.stream().map(
                     item->{
                         StockDeductDTO.SkuNumDTO skuNumDTO = new StockDeductDTO.SkuNumDTO();
                         skuNumDTO.setSkuId(item.getSkuId());
@@ -174,9 +172,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         orderDelayProducer.sendOrderDelayMsg(orderId);
     }
 
-    /**
-     * 2 取消未支付订单
-     */
+    // 2 取消未支付订单
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(Long orderId) {
@@ -192,22 +188,16 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 4 校验 只能取消自己的订单
         validOrderSelf(order,userId);
 
-        // 5 更新订单状态、取消时间
-        setOrderCancel(orderId);
-
-        // 6. 删除订单子表
-        orderItemMapper.delete(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
-        log.info("用户{}取消订单{}成功", userId, order.getOrderSn());
+        // 5、6、 7. 8 更新订单主表状态，删除订单子表 取消订单归还锁定库存 写入库存流水
+        closeOrder(orderId,
+                "用户"+userId+"手动取消订单"+order.getOrderSn()+"成功");
+        log.info("用户{}手动取消订单{}成功", userId, order.getOrderSn());
 
         // ❗️❗️❗️TODO：重新放回购物车
 
-        // ❗️❗️❗️TODO 迭代：取消订单回滚商品库存
-        stockService.rollbackCancelStock();
     }
 
-    /**
-     * 3 30分钟未支付自动关闭订单
-     */
+    // 3 30分钟未支付自动关闭订单
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void closeOrderByTimeout(Long orderId) {
@@ -220,25 +210,43 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 3. 校验 只能取消自己的订单   (不用校验登录，这是和取消订单唯一区别)
         validOrderSelf(order, SecurityUtils.getLoginUser().getUser().getId());
 
-        // 4. 更新订单状态为已取消、
-        setOrderCancel(orderId);
-
-        // 5. 删除订单子表
-        orderItemMapper.delete(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+        // 4、5、6、7
+        closeOrder(orderId,
+                "订单超时未支付，系统自动关闭成功,订单号order_sn"+order.getOrderSn());
         log.info("订单{}超时未支付，系统自动关闭成功", order.getOrderSn());
-
-        // 6. 取消订单回滚库存
-        stockService.rollbackCancelStock(orderId);
-
 
         // ❗️❗️❗️TODO：重新放回购物车
 
-        // ❗️❗️❗️TODO：此处调用库存服务，返还库存（你后续库存模块实现）
     }
 
-    /**
-     * 4 查询我的订单分页
-     */
+    // 关闭订单（库表）
+    private void closeOrder(Long orderId, String remark) {
+        //  更新订单主表 订单状态、取消时间
+        setOrderCancel(orderId);
+
+        //  删除订单子表、
+        List<OrderItem> orderItems = orderItemMapper.selectByOrderId(orderId);
+        orderItemMapper.delete(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId, orderId));
+
+
+        //  取消订单回滚锁定库存、写入库存流水
+        StockRollbackDTO dto = new StockRollbackDTO();
+        dto.setOrderId(orderId);
+        dto.setChangeType(StockConstant.CHANGE_TYPE_CANCEL_ROLLBACK);
+        dto.setRemark(remark);
+        dto.setSkuNumList(orderItems.stream().map(
+                item->{
+                        StockRollbackDTO.SkuNumDTO skuNumDTO = new StockRollbackDTO.SkuNumDTO();
+                        skuNumDTO.setSkuId(item.getSkuId());
+                        skuNumDTO.setCount(item.getCount());
+                        return skuNumDTO;
+                    }
+                ).collect(Collectors.toList()));
+        stockService.rollbackCancelStock(dto);
+    }
+
+
+    // 4 查询我的订单分页
     @Override
     public IPage<OrderPageVO> getMyOrderPage(OrderQueryUserDTO dto) {
         //校验登录
@@ -250,9 +258,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     }
 
-    /**
-     * 5 查询后台订单分页
-     */
+    // 5 查询后台订单分页
     @Override
     public IPage<OrderPageVO> getAdminOrderPage(OrderQueryAdminDTO dto) {
         //校验登录
@@ -263,9 +269,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return orderToOrderVO(orderPage);
     }
 
-    /**
-     * 6 订单详情（CompletableFuture 并行查询 提升查询速度）
-     */
+    // 6 订单详情（CompletableFuture 并行查询 提升查询速度）
     /*
     @Override
     public OrderDetailVO getOrderDetail(Long orderId) {
@@ -316,6 +320,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
 
+
+
+
     @Override
     public Order validOrderExist(Long orderId) {
         Order order = baseMapper.selectById(orderId);
@@ -335,7 +342,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     @Override
     public void validOrderStatusByCancel(Order order){
         // 校验订单状态（只能取消待支付订单，已取消、已支付...全都禁止）
-        if(!Objects.equals(order.getStatus(), OrderConstant.ORDER_NO_PAY)){
+        if(!Objects.equals(order.getOrderStatus(), OrderConstant.ORDER_NO_PAY)){
             throw new BusinessException(ResultCode.ORDER_CANCEL_FORBID);
         }
     }
@@ -350,7 +357,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return vo;
     }
 
-    private void setOrderCancel(Long orderId){
+    // 更新订单主表为取消状态
+    @Override
+    public void setOrderCancel(Long orderId){
         // 设置订单为已取消订单
         Order order = Order.builder()
                 .id(orderId)
@@ -359,4 +368,5 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .build();
         baseMapper.updateById(order);
     }
+
 }

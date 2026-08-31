@@ -93,6 +93,7 @@ public enum ResultCode {
     ORDER_NOT_SLEF_REFUND_OPERATE_FORBID(4605, "仅本人订单可退款"),
     ORDER_REFUND_OPERATE_FORBID(4606, "订单状态异常，禁止退款"),
     ORDER_REFUND_EXIST(4607, "订单已经退款，禁止重复退款"),
+    ORDER_ITEM_NOT_EXIST(4608, "订单已经退款，禁止重复退款"),
 
     /**
      * 库存 4700
@@ -108,11 +109,13 @@ public enum ResultCode {
     STOCK_OPTIMISTIC_LOCK_FAIL(4704, "库存并发抢占失败，请重试"),
     // 4705 库存回滚失败（取消订单/退款）
     STOCK_ROLLBACK_FAIL(4705, "库存回滚操作失败"),
-    // 4706 后台调整库存后可用库存为负
-    STOCK_ADJUST_NEGATIVE(4706, "库存调整后可用库存不能为负数"),
-    // 4707 库存流水记录保存失败
-    STOCK_LOG_SAVE_FAIL(4707, "库存操作日志保存失败"),
-    STOCK_SKU_LIST_EMPTY(4708, "商品规格数据缺失，删除库存记录失败"),
+    // 4706 秒杀库存回滚失败（取消订单/退款）
+    STOCK_SECKILL_ROLLBACK_FAIL(4706, "秒杀库存回滚操作失败"),
+    // 4707 后台调整库存后可用库存为负
+    STOCK_ADJUST_NEGATIVE(4707, "库存调整后可用库存不能为负数"),
+    // 4708 9 库存流水记录保存失败
+    STOCK_LOG_SAVE_FAIL(4708, "库存操作日志保存失败"),
+    STOCK_SKU_LIST_EMPTY(4709, "商品规格数据缺失，删除库存记录失败"),
 
     /**
      * 支付 4800

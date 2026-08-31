@@ -63,6 +63,6 @@ public class SeckillGoods extends BaseEntity {
     /**
      * 乐观锁
      */
-    private Integer version;
+    private Long version;
 
 }

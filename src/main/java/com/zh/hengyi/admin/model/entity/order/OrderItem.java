@@ -31,14 +31,8 @@ public class OrderItem extends BaseEntity  {
      */
     private Long orderId;
 
-    /**
-     * 
-     */
     private Long spuId;
 
-    /**
-     * 
-     */
     private Long skuId;
 
     /**

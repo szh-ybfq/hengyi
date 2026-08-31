@@ -16,7 +16,7 @@ public class OrderDelayMqConfig {
 
     // 普通延迟队列（Time To Live 消息存活时间，30分钟过期）
     public static final String ORDER_DELAY_QUEUE = "order.delay.queue";
-    public static final Integer NORMAL_TTL = 30 * 60 * 1000; // ms
+    public static final Integer ORDER_OUTIME_TTL = 30 * 60 * 1000; // ms
     /*
      * 正常消息无法被消费、过期、被拒绝，就会变成 死信；
      *     使用场景：消息过期（30分钟关闭订单），消费者主动拒绝消息
@@ -46,7 +46,7 @@ public class OrderDelayMqConfig {
     public Queue orderDelayQueue() {
         Map<String, Object> args = new HashMap<>();
         // 1 设置TTL 30min
-        args.put("x-message-ttl",NORMAL_TTL);
+        args.put("x-message-order-close-ttl",ORDER_OUTIME_TTL);
 
         // 2 过期转发消息到死信交换机
         args.put("x-dead-letter-exchange", ORDER_DLX_EXCHANGE);

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
+import com.zh.hengyi.admin.mapper.stock.StockLogMapper;
 import com.zh.hengyi.admin.mapper.stock.StockMapper;
 import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
@@ -39,7 +40,7 @@ import java.util.stream.Collectors;
 public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements StockService {
 
     private final StockMapper stockMapper;
-    private final StockLogService stockLogService;
+    private final StockLogMapper stockLogMapper;
     private final ProductSpuMapper spuMapper;
 
     // 1 下单   预占库存          痛点解决：乐观锁防止并发超卖，每条操作写入流水日志对账
@@ -123,7 +124,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
                     .orderId(dto.getOrderId())
                     .orderSn(null)
                     .seckillGoodsId(null)
-                    .changeType(StockConstant.CHANGE_TYPE_CANCEL_ROLLBACK)
+                    .changeType(dto.getChangeType())
                     .changeNum(count)
                     .remark(dto.getRemark())
                     .build());
@@ -368,6 +369,9 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
 
         stockLog.setRemark(logDto.getRemark());
 
-        stockLogService.save(stockLog);
+        int insert = stockLogMapper.insert(stockLog);
+        if(insert == 0){
+            throw new BusinessException(ResultCode.STOCK_LOG_SAVE_FAIL);
+        }
     }
 }

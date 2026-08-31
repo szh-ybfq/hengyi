@@ -32,7 +32,7 @@ public class CacheDelayedMqConfig {
         return QueueBuilder.durable(CACHE_DELAY_QUEUE).build();
     }
 
-    // 按照路由键绑定 延迟交换机和延迟队列
+    // 按照路由key 绑定延迟交换机和延迟队列
     @Bean
     public Binding cacheDelayBinding() {
         return BindingBuilder.bind(cacheDelayQueue())
