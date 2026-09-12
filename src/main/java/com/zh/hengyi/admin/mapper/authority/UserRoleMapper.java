@@ -2,7 +2,7 @@ package com.zh.hengyi.admin.mapper.authority;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.zh.hengyi.admin.model.entity.authority.UserRole;
+import com.zh.hengyi.admin.model.entity.authority.admin.UserRole;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

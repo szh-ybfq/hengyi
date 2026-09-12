@@ -1,14 +1,16 @@
 package com.zh.hengyi.admin.service.product;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuEditDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSkuAddDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuAddDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuEditDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.zh.hengyi.admin.model.vo.product.ProductSpuFormVO;
-import com.zh.hengyi.admin.model.vo.product.ProductSpuPageVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductSpuFormVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductSpuPageVO;
+import com.zh.hengyi.admin.model.vo.product.app.ProductSpuPageCardVO;
 
 import java.util.List;
 
@@ -19,7 +21,9 @@ import java.util.List;
 */
 public interface ProductSpuService extends IService<ProductSpu> {
 
-    IPage<ProductSpuPageVO> getPage(ProductSpuQueryDTO dto);
+    IPage<ProductSpuPageVO> getPageByAdmin(ProductSpuQueryDTO dto);
+
+    IPage<ProductSpuPageCardVO> getPageByApp(ProductSpuCardQueryDTO dto);
 
     ProductSpuFormVO getSpuInfo(Long id);
 

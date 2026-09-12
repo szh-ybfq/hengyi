@@ -149,8 +149,10 @@ public class SeckillActivityServiceImpl extends ServiceImpl<SeckillActivityMappe
             seckillGoods.setSkuId(skuId);
             seckillGoods.setSeckillPrice(goods.getSeckillPrice());
             seckillGoods.setSeckillStock(seckillStock); // 配置秒杀总库存
+            seckillGoods.setSeckillLock(SeckillConstant.GOODS_LOCK); // 锁定初始0
             seckillGoods.setSeckillSold(SeckillConstant.GOODS_SOLD); // 已售初始0
             seckillGoods.setLimitPerson(goods.getLimitPerson()); // 每日限售
+
             seckillGoodsMapper.insert(seckillGoods);
         }
     }

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zh.hengyi.admin.model.dto.authority.role.RoleQueryDTO;
-import com.zh.hengyi.admin.model.entity.authority.Role;
+import com.zh.hengyi.admin.model.entity.authority.admin.Role;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zh.hengyi.admin.model.vo.authority.role.RoleOptionVO;
 import org.apache.ibatis.annotations.Mapper;

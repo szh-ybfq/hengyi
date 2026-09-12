@@ -6,6 +6,7 @@ import com.zh.hengyi.admin.service.seckill.SeckillOrderService;
 import com.zh.hengyi.common.result.Result;
 import com.zh.hengyi.common.utils.security.UserUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/user/api/v1/seckill")
 @RequiredArgsConstructor
+@Tag(name = "用户秒杀模块")
 public class UserSeckillController {
 
     private final SeckillOrderService seckillOrderService;
@@ -23,7 +25,7 @@ public class UserSeckillController {
     public Result<Void> createSeckillOrder(@Valid @RequestBody SeckillOrderCreateDTO dto){
         // 校验登录
         Long userId = UserUtils.validUserLogin().getId();
-        seckillOrderService.submitSeckillOrder(dto);
+        seckillOrderService.submitSeckillOrder(dto.getSeckillGoodsId(),dto);
         return Result.success();
     }
 

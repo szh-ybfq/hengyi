@@ -1,12 +1,9 @@
 package com.zh.hengyi.admin.service.stock;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuAddDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockEditDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockLogDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockRollbackDTO;
-import com.zh.hengyi.admin.model.entity.product.ProductSku;
 import com.zh.hengyi.admin.model.entity.stock.Stock;
 import com.zh.hengyi.admin.model.vo.stock.StockVO;
 import java.util.List;
@@ -36,11 +33,11 @@ public interface StockService extends IService<Stock> {
     /** 批量查询sku库存 */
     List<StockVO> getStockListBySkuIds(List<Long> skuIds);
     /**
-     * 秒杀商品扣减可用库存
+     * 新增秒杀商品：秒杀商品扣减可用库存
      */
     void deductAvailableStock(Stock Stock,Integer seckillStock);
     /**
-     * 秒杀商品归还可用库存
+     * 删除秒杀商品：秒杀商品归还可用库存
      */
     void revertAvailableStock(Stock Stock,Integer seckillStock);
     /** 校验sku库存记录存在，不存在自动初始化库存 */

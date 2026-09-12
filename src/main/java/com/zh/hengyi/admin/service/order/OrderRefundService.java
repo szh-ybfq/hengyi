@@ -12,7 +12,6 @@ import com.zh.hengyi.admin.model.vo.order.OrderRefundVO;
 * @createDate 2026-08-12 20:25:57
 */
 public interface OrderRefundService extends IService<OrderRefund> {
-    // 申请退款
     void applyRefund(OrderRefundApplyDTO dto);
 
     void validOrderRefundExist(Long orderId);

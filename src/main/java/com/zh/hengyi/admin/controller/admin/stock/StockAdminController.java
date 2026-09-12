@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin/api/v1/stock")
-@Tag(name = "后台库存管理模块")
+@Tag(name = "库存管理模块")
 @RequiredArgsConstructor
 public class StockAdminController {
 

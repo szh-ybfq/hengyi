@@ -3,7 +3,10 @@ package com.zh.hengyi.admin.mapper.order;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zh.hengyi.admin.model.entity.order.OrderItem;
+import com.zh.hengyi.admin.model.entity.seckill.SeckillGoods;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.aspectj.weaver.ast.Or;
 
 import java.util.List;
@@ -19,6 +22,18 @@ public interface OrderItemMapper extends BaseMapper<OrderItem> {
     default List<OrderItem> selectByOrderId(Long orderId){
         return selectList(new LambdaQueryWrapper<OrderItem>().eq(OrderItem::getOrderId,orderId));
     };
+
+    int getGoodsBuyNumByUser(SeckillGoods seckillGoods);
+
+    @Select("""
+        SELECT SUM(oi.count)
+                FROM `order` o
+                INNER JOIN order_item oi ON o.id = oi.order_id
+                WHERE o.user_id = #{userId}
+                AND o.order_status NOT IN (4,5)
+                AND oi.sku_id = #{skuId}
+    """)
+    Integer getUserBuySumBySkuId(@Param("userId") Long userId, @Param("skuId") Long skuId);
 }
 
 

@@ -1,5 +1,8 @@
 package com.zh.hengyi.config.sercurity.config;
 
+import cn.hutool.json.JSONUtil;
+import com.zh.hengyi.common.result.Result;
+import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.config.sercurity.utils.jwt.JwtAuthenticationFilter;
 import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,13 +42,26 @@ public class SecurityConfig {
                                 "/admin/api/v1/user/register",
                                 "/admin/api/v1/user/logout",
                                 "/swagger-ui/**",
+                                "/swagger-resources/**",
                                 "/v3/api-docs/**",
                                 "/doc.html",
                                 "/webjars/**",
-                                "/favicon.ico")
+                                "/favicon.ico",
+                                "/*"
+
+                        )
                         .permitAll()                    //permitAll()：无条件放行，不需要登录、不需要 token
                         .anyRequest().authenticated()   //anyRequest()：剩下所有其他接口，authenticated()：必须完成认证（登录成功携带有效 token）才能访问
-                ) // jwt过滤器放在账号密码过滤器之前
+                )
+                .exceptionHandling(ex -> {
+                    // 401：未登录、token无效、token过期
+                    ex.authenticationEntryPoint((request, response, authException) -> {
+                        response.setContentType("application/json;charset=UTF-8");
+                        response.setStatus(200); // 业务系统统一http200，靠code字段区分，不要返回http401状态码
+                        Result<?> result = Result.error(ResultCode.AUTHORIZATION_ERROR.getCode(), ResultCode.AUTHORIZATION_ERROR.getMsg());
+                        response.getWriter().write(JSONUtil.toJsonStr(result));
+                    });
+                })// jwt过滤器放在账号密码过滤器之前
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

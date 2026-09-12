@@ -1,5 +1,6 @@
 package com.zh.hengyi.admin.model.dto.seckill;
 
+import cn.hutool.db.sql.Order;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;

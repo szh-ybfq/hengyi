@@ -172,7 +172,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         orderDelayProducer.sendOrderDelayMsg(orderId);
     }
 
-    // 2 取消未支付订单
+    // 2 取消订单
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void cancelOrder(Long orderId) {
@@ -182,10 +182,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 2 校验 订单存在
         Order order = validOrderExist(orderId);
 
-        // 2. 校验 待支付订单，（用户已支付、用户手动取消/退款、已发货）禁止取消订单
-        validOrderStatusByCancel(order);
+        // 校验 是否 ① 是待支付订单 （只能取消待支付订单，已取消、已支付...全都禁止） ② 是否已取消（禁止重复取消）
+        validOrderStatusIsNoPay(order.getOrderStatus());
 
-        // 4 校验 只能取消自己的订单
+        // 4 校验 是否 是自己的订单
         validOrderSelf(order,userId);
 
         // 5、6、 7. 8 更新订单主表状态，删除订单子表 取消订单归还锁定库存 写入库存流水
@@ -204,13 +204,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 1. 校验 订单存在
         Order order = validOrderExist(orderId);
 
-        // 2. 校验 待支付订单，（用户已支付、用户手动取消/退款、已发货）禁止取消订单
-        validOrderStatusByCancel(order);
+        // 2 校验订单是否可取消（订单超时关闭）（包括各种状态处理）
+        validOrderIsCancel(order);
 
-        // 3. 校验 只能取消自己的订单   (不用校验登录，这是和取消订单唯一区别)
-        validOrderSelf(order, SecurityUtils.getLoginUser().getUser().getId());
+        // 不需要校验：只能操作自己的订单，关闭是后台行为，不是用户行为，与用户登录无关
 
-        // 4、5、6、7
+        // 3、4、5、6
         closeOrder(orderId,
                 "订单超时未支付，系统自动关闭成功,订单号order_sn"+order.getOrderSn());
         log.info("订单{}超时未支付，系统自动关闭成功", order.getOrderSn());
@@ -219,10 +218,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     }
 
-    // 关闭订单（库表）
+    // 关闭订单（数据库）
     private void closeOrder(Long orderId, String remark) {
         //  更新订单主表 订单状态、取消时间
-        setOrderCancel(orderId);
+        setOrderCancelStatus(orderId);
 
         //  删除订单子表、
         List<OrderItem> orderItems = orderItemMapper.selectByOrderId(orderId);
@@ -319,10 +318,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         return vo;
     }
 
-
-
-
-
     @Override
     public Order validOrderExist(Long orderId) {
         Order order = baseMapper.selectById(orderId);
@@ -339,13 +334,37 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         }
     }
 
+    // 校验 是否 ① 是待支付订单 （只能取消待支付订单，已取消、已支付...全都禁止） ② 是否已取消
     @Override
-    public void validOrderStatusByCancel(Order order){
-        // 校验订单状态（只能取消待支付订单，已取消、已支付...全都禁止）
-        if(!Objects.equals(order.getOrderStatus(), OrderConstant.ORDER_NO_PAY)){
+    public void validOrderStatusIsNoPay(Integer orderStatus){
+        if(!Objects.equals(orderStatus, OrderConstant.ORDER_NO_PAY)){
+            if(orderStatus.equals(OrderConstant.ORDER_HAVING_CANCEL)){
+                throw new BusinessException(ResultCode.ORDER_CANCEL_UNIQUE_FORBID);
+            }
             throw new BusinessException(ResultCode.ORDER_CANCEL_FORBID);
         }
     }
+
+    // 校验：订单是否可取消（订单超时关闭，包括各种状态处理）
+    @Override
+    public void validOrderIsCancel(Order order){
+        // 订单为待支付，直接返回
+        if(Objects.equals(order.getOrderStatus(), OrderConstant.ORDER_NO_PAY)){
+            return;
+        }
+        // 订单为非待支付，只打印日志
+        if (Objects.equals(order.getOrderStatus(), OrderConstant.ORDER_HAVING_CANCEL)){
+            log.info("订单orderId:{} 已取消，禁止重复取消",order.getId());
+            return;
+        }
+        if(OrderConstant.ORDER_HAVING_PAY.equals(order.getOrderStatus())
+                || OrderConstant.ORDER_HAVING_SEND.equals(order.getOrderStatus())
+                || OrderConstant.ORDER_HAVING_DONE.equals(order.getOrderStatus())
+                || OrderConstant.ORDER_DOING_REFUND.equals(order.getOrderStatus())){
+            log.info("订单已经处理完毕，订单状态 orderStatus:{}，跳过 orderId:{}",order.getOrderStatus(),order.getId());
+            return;
+        }
+    };
 
     public IPage<OrderPageVO> orderToOrderVO(IPage<Order> orderPage) {
         IPage<OrderPageVO> vo = new Page<>();
@@ -359,7 +378,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     // 更新订单主表为取消状态
     @Override
-    public void setOrderCancel(Long orderId){
+    public void setOrderCancelStatus(Long orderId){
         // 设置订单为已取消订单
         Order order = Order.builder()
                 .id(orderId)

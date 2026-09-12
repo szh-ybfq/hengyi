@@ -1,6 +1,7 @@
 package com.zh.hengyi.admin.service.product.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,17 +10,19 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.product.ProductImageMapper;
 import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.mapper.product.ProductSkuMapper;
-import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuEditDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSkuAddDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuAddDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuEditDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductImage;
 import com.zh.hengyi.admin.model.entity.product.ProductSku;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.admin.model.entity.stock.Stock;
-import com.zh.hengyi.admin.model.vo.product.ProductSkuFormVO;
-import com.zh.hengyi.admin.model.vo.product.ProductSpuFormVO;
-import com.zh.hengyi.admin.model.vo.product.ProductSpuPageVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductSkuFormVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductSpuFormVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductSpuPageVO;
+import com.zh.hengyi.admin.model.vo.product.app.ProductSpuPageCardVO;
 import com.zh.hengyi.admin.service.product.ProductCategoryService;
 import com.zh.hengyi.admin.service.product.ProductSkuService;
 import com.zh.hengyi.admin.service.product.ProductSpuService;
@@ -34,6 +37,7 @@ import org.redisson.api.RBloomFilter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,9 +55,9 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     private final ProductCacheUtils productCacheUtils;
     private final StockService stockService;
 
-    // 商品分页高并发接口优化
+    // 后台：商品分页
     @Override
-    public IPage<ProductSpuPageVO> getPage(ProductSpuQueryDTO dto) {
+    public IPage<ProductSpuPageVO> getPageByAdmin(ProductSpuQueryDTO dto) {
         //IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(dto.getPageNum(), dto.getPageSize()), dto);
         //return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
 
@@ -68,12 +72,29 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
 
-        String cacheKey = productCacheUtils.buildCacheKey(dto);
-        return  productCacheUtils.getTwoLevelCache(cacheKey, ()->{
+        return  productCacheUtils.getTwoLevelCache(productCacheUtils.buildCacheKey(dto), ()->{
             Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
             Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
-            IPage<ProductSpu> spuPage = baseMapper.getPage(new Page<>(pageNum,pageSize), dto);
+            IPage<ProductSpu> spuPage = baseMapper.getPageByAdmin(new Page<>(pageNum,pageSize), dto);
             return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
+        });
+    }
+
+    // 前台：商品分页
+    @Override
+    public IPage<ProductSpuPageCardVO> getPageByApp(ProductSpuCardQueryDTO dto) {
+        RBloomFilter<Long> bloom = productCacheUtils.getProductBloom();
+        Long categoryId = dto.getCategoryId();
+
+        if (productCacheUtils.bloomReady && categoryId != null && !bloom.contains(categoryId)) {
+            return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
+        }
+
+        return  productCacheUtils.getTwoLevelCache(productCacheUtils.buildCacheKeyByApp(dto), ()->{
+            Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
+            Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
+            IPage<ProductSpu> spuPage = baseMapper.getPageByApp(new Page<>(pageNum,pageSize), dto);
+            return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageCardVO.class));
         });
     }
 
@@ -85,16 +106,23 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
 
         // 2、将 spu、skuList转换VO，再组装返回
         ProductSpuFormVO vo = BeanUtil.copyProperties(spu, ProductSpuFormVO.class);
-        List<ProductSkuFormVO> skuFormList = ConvertUtils.convertList(skuMapper.selectListBySpuId(id), ProductSkuFormVO.class);
+        List<ProductSku> skus = skuMapper.selectListBySpuId(id);
+        // 3、1 skus非空
+        if (CollUtil.isNotEmpty(skus)) {
+            List<ProductSkuFormVO> skuFormList = ConvertUtils.convertList(skus, ProductSkuFormVO.class);
+                // 4、查可用库存，为skuListVO设置库存
+            List<Long> skuIds = skuFormList.stream().map(ProductSkuFormVO::getId).collect(Collectors.toList());
+            List<Stock> stockList = stockService.list(new LambdaQueryWrapper<Stock>().in(Stock::getSkuId, skuIds));
+            for(int i=0;i<stockList.size();i++){
+                skuFormList.get(i).setStock(stockList.get(i).getAvailableStock());
+            }
 
-        // 3、查可用库存，为skuListVO设置库存
-        List<Stock> stockList = stockService.list(new LambdaQueryWrapper<Stock>().in(Stock::getSkuId, skuFormList.stream().map(ProductSkuFormVO::getId).collect(Collectors.toList())));
-        for(int i=0;i<stockList.size();i++){
-            skuFormList.get(i).setStock(stockList.get(i).getAvailableStock());
+            vo.setSkuList(skuFormList);
+        }else {
+
+            // 3、2 skus为空
+            vo.setSkuList(new ArrayList<>());
         }
-
-        // 4、组装spuVO skuListVO为 spuFormVO返回
-        vo.setSkuList(skuFormList);
         return vo;
     }
 

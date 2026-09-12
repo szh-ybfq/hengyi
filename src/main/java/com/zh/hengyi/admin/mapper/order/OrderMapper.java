@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryAdminDTO;
 import com.zh.hengyi.admin.model.dto.order.OrderQueryUserDTO;
 import com.zh.hengyi.admin.model.entity.order.Order;
+import com.zh.hengyi.admin.model.entity.seckill.SeckillGoods;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -39,6 +40,8 @@ public interface OrderMapper extends BaseMapper<Order> {
                 .orderByDesc(Order::getCreateTime);
         return selectPage(page, wrapper);
     };
+
+
 }
 
 

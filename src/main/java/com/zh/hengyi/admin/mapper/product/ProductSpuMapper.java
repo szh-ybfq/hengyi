@@ -4,9 +4,11 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.zh.hengyi.common.constant.ProductConstant;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
@@ -27,11 +29,20 @@ public interface ProductSpuMapper extends BaseMapper<ProductSpu> {
         return selectOne(wrapper);
     }
 
-    default IPage<ProductSpu> getPage(Page<ProductSpu> page, ProductSpuQueryDTO dto){
+    default IPage<ProductSpu> getPageByAdmin(Page<ProductSpu> page, ProductSpuQueryDTO dto){
         return selectPage(page,new LambdaQueryWrapper<ProductSpu>()
                 .like(StrUtil.isNotBlank(dto.getSpuName()), ProductSpu::getSpuName, dto.getSpuName())
                 .eq(dto.getCategoryId() != null, ProductSpu::getCategoryId, dto.getCategoryId())
                 .eq(dto.getStatus() != null, ProductSpu::getStatus, dto.getStatus())
+                .orderByDesc(ProductSpu::getCreateTime)
+        );
+    }
+
+    default IPage<ProductSpu> getPageByApp(Page<ProductSpu> page, ProductSpuCardQueryDTO dto){
+        return selectPage(page,new LambdaQueryWrapper<ProductSpu>()
+                .like(StrUtil.isNotBlank(dto.getSpuName()), ProductSpu::getSpuName, dto.getSpuName())
+                .eq(dto.getCategoryId() != null, ProductSpu::getCategoryId, dto.getCategoryId())
+                .eq(ProductSpu::getStatus, ProductConstant.PRODUCT_STATUS_UP)
                 .orderByDesc(ProductSpu::getCreateTime)
         );
     }

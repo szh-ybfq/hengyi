@@ -18,21 +18,18 @@ import java.util.List;
 
 public interface SeckillOrderService extends IService<SeckillGoods> {
 
-    // 1.1 用户提交秒杀请求：全部Redis层校验，发送MQ直接返回
-    void submitSeckillOrder(SeckillOrderCreateDTO dto);
+    // 1.1 Redis+lua层拦截（削峰），发送MQ消息
+    void submitSeckillOrder(Long seckillGoodsId,SeckillOrderCreateDTO dto);
 
-    // 1.2 MQ消费者调用：
+    // 1.2 MQ消费（填谷），执行下秒杀单
     void consumeSeckillOrder(SeckillOrderMsgDTO msgDTO);
 
-    // 2 取消订单
     void cancelSeckillOrder(Long orderId);
 
-    // 3 30分钟超时关单
     void closeSeckillOrderTimeout(Long orderId);
 
 //    // 4 用户退款
 //    void applySeckillRefund(OrderRefundApplyDTO dto);
-
 
     Order validSeckillOrderExist(Long seckilLId);
 

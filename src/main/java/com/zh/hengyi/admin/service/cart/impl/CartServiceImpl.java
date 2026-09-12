@@ -1,8 +1,6 @@
 package com.zh.hengyi.admin.service.cart.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,7 +8,6 @@ import com.zh.hengyi.admin.mapper.cart.CartMapper;
 import com.zh.hengyi.admin.model.dto.cart.CartAddDTO;
 import com.zh.hengyi.admin.model.dto.cart.CartSelectDTO;
 import com.zh.hengyi.admin.model.dto.cart.CartUpdateCountDTO;
-import com.zh.hengyi.admin.model.entity.authority.User;
 import com.zh.hengyi.admin.model.entity.cart.Cart;
 import com.zh.hengyi.admin.model.entity.product.ProductSku;
 import com.zh.hengyi.admin.model.entity.product.ProductSpu;
@@ -27,8 +24,6 @@ import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.security.UserUtils;
 import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
-import jakarta.validation.constraints.NotNull;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
@@ -38,10 +33,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

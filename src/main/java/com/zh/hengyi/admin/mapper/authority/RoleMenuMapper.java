@@ -1,7 +1,7 @@
 package com.zh.hengyi.admin.mapper.authority;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.zh.hengyi.admin.model.entity.authority.RoleMenu;
+import com.zh.hengyi.admin.model.entity.authority.admin.RoleMenu;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 

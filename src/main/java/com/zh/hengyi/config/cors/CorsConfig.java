@@ -9,7 +9,8 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173") // vite默认前端地址
+                .allowedOrigins("http://localhost:5173")// 后台
+//                        "http://localhost:5174") // 前台
                 .allowedMethods("GET","POST","PUT","DELETE","OPTIONS")
                 .allowCredentials(true)
                 .maxAge(3600);

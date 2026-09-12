@@ -16,7 +16,7 @@ spring:
       port: 6379
       # password: 这里直接注释，不写
       database: 1
-# redission
+  # redission
   redisson:
     single-server-config:
       address: redis://127.0.0.1:6379
@@ -58,6 +58,17 @@ spring:
   output:
     ansi:
       enabled: ALWAYS
+  cloud:
+    sentinel:
+      transport:
+        dashboard: 127.0.0.1:8080  # sentinel控制台地址，启动控制台jar包
+        port: 8719 # sentinel客户端通信端口，默认
+      web-context-unify: false # 关闭Sentinel的默认统一上下文，避免链路限流失效
+      eager: true
+
+
+
+
 
 # 日志配置
 logging:
@@ -108,3 +119,6 @@ mybatis-plus:
 jwt:
   secret: hengYiSecretKey1234567890HengYiAdminSystem
   expire: 86400000
+
+springdoc:
+  default-flat-param-object: true # GET + @ModelAttribute 对象，自动扁平化展示get请求参数，不用每个接口写`@ParameterObject`

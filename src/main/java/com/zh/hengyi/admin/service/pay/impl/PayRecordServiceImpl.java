@@ -2,21 +2,27 @@ package com.zh.hengyi.admin.service.pay.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.order.OrderItemMapper;
 import com.zh.hengyi.admin.mapper.order.OrderMapper;
 import com.zh.hengyi.admin.mapper.pay.PayRecordMapper;
+import com.zh.hengyi.admin.mapper.product.ProductSkuMapper;
+import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.model.dto.pay.PayCallbackDTO;
 import com.zh.hengyi.admin.model.dto.pay.PayCreateDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
 import com.zh.hengyi.admin.model.entity.order.Order;
 import com.zh.hengyi.admin.model.entity.order.OrderItem;
 import com.zh.hengyi.admin.model.entity.pay.PayRecord;
+import com.zh.hengyi.admin.model.entity.product.ProductSku;
+import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.admin.model.vo.pay.PayRecordVO;
 import com.zh.hengyi.admin.service.order.OrderService;
 import com.zh.hengyi.admin.service.pay.PayRecordService;
 import com.zh.hengyi.admin.service.stock.StockService;
 import com.zh.hengyi.common.constant.OrderConstant;
+import com.zh.hengyi.common.constant.PayConstant;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +31,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static com.zh.hengyi.common.constant.PayConstant.PAY_NO;
-import static com.zh.hengyi.common.constant.PayConstant.PAY_TYPE_TEST;
+import static com.zh.hengyi.common.constant.PayConstant.*;
 
 @Slf4j
 @Service
@@ -40,6 +46,8 @@ public class PayRecordServiceImpl extends ServiceImpl<PayRecordMapper, PayRecord
     private final OrderService orderService;
     private final OrderItemMapper orderItemMapper;
     private final StockService stockService;
+    private final ProductSkuMapper skuMapper;
+    private final ProductSpuMapper spuMapper;
 
 
     // 创建支付单，hutool生成唯一paySn支付流水号
@@ -50,8 +58,10 @@ public class PayRecordServiceImpl extends ServiceImpl<PayRecordMapper, PayRecord
     @Transactional(rollbackFor = Exception.class)
     public PayRecordVO createPayRecord(PayCreateDTO dto) {
         Long orderId = dto.getOrderId();
-        // 1.校验订单存在、状态为待支付
+        // 1.校验订单存在、
         Order order = orderService.validOrderExist(orderId);
+
+        // 2.校验状态为待支付
         if (!OrderConstant.ORDER_NO_PAY.equals(order.getOrderStatus())) {
             throw new BusinessException(ResultCode.ORDER_PAY_FORBID);
         }
@@ -84,13 +94,15 @@ public class PayRecordServiceImpl extends ServiceImpl<PayRecordMapper, PayRecord
     public void payCallback(PayCallbackDTO dto) {
         String paySn = dto.getPaySn();
         Integer payStatus = dto.getPayStatus();
+
         // 1.查询支付单
         PayRecord payRecord = payRecordMapper.selectByPaySn(paySn);
         if (payRecord == null) {
             throw new BusinessException(ResultCode.PAY_RECORD_NOT_EXIST);
         }
+
         // 2.重复回调拦截
-        if (!payRecord.getPayStatus().equals(0)) {
+        if (payRecord.getPayStatus().equals(PAY_SUCCESS)) {
             log.warn("支付流水{}已处理，重复回调直接忽略", paySn);
             throw new BusinessException(ResultCode.PAY_REPEAT_CALLBACK);
         }
@@ -99,9 +111,10 @@ public class PayRecordServiceImpl extends ServiceImpl<PayRecordMapper, PayRecord
         PayRecord updatePay = new PayRecord();
         updatePay.setId(payRecord.getId());
         updatePay.setCallbackContent(dto.getCallbackContent());
+
         // 3.支付成功
-        if (payStatus == 1) {
-            updatePay.setPayStatus(1);
+        if (payStatus == PayConstant.PAY_SUCCESS) {
+            updatePay.setPayStatus(PayConstant.PAY_SUCCESS);
             updatePay.setPaySuccessTime(now);
 
             // 3.1 更新订单状态为已支付
@@ -119,24 +132,31 @@ public class PayRecordServiceImpl extends ServiceImpl<PayRecordMapper, PayRecord
             if (itemList == null || itemList.isEmpty()) {
                 throw new BusinessException(ResultCode.PAY_ORDER_ITEM_EMPTY);
             }
-            List<StockDeductDTO.SkuNumDTO> skuNumList = itemList.stream().map(item -> {
-                StockDeductDTO.SkuNumDTO num = new StockDeductDTO.SkuNumDTO();
-                num.setSkuId(item.getSkuId());
-                num.setCount(item.getCount());
-                return num;
-            }).collect(Collectors.toList());
             StockDeductDTO stockDTO = new StockDeductDTO();
             stockDTO.setOrderId(orderId);
             stockDTO.setOrderSn(order.getOrderSn());
-            stockDTO.setSkuNumList(skuNumList);
+            stockDTO.setSkuNumList(itemList.stream()
+                .map(
+                item -> {
+                    StockDeductDTO.SkuNumDTO skuNumDTO = new StockDeductDTO.SkuNumDTO();
+                    skuNumDTO.setSkuId(item.getSkuId());
+                    skuNumDTO.setCount(item.getCount());
+                    // 3.3 更新spu已售，方便直接展示,(spu=skus的总和，每个商品无论规格直接累计到已售)
+                    spuMapper.update(new LambdaUpdateWrapper<ProductSpu>().eq(ProductSpu::getId,item.getSpuId())
+                            .setSql(item.getCount()>0,"sale_count = sale_count + "+item.getCount()));
+                    return skuNumDTO;
+            }).collect(Collectors.toList()));
+
             try {
-                stockService.deductStockAfterPay(stockDTO);
+                stockService.deductStockAfterPay(stockDTO); //扣减库存时也会报异常
             } catch (BusinessException e) {
                 log.error("支付回调扣减库存失败，订单号:{},异常:{}", order.getOrderSn(), e.getMessage());
                 throw new BusinessException(ResultCode.PAY_STOCK_DEDUCT_FAIL);
             }
             log.info("支付回调成功，订单{}库存扣减完成", order.getOrderSn());
-        } else {
+
+
+        } else if (payStatus == PayConstant.PAY_FAIL){
             // 4.支付失败
             updatePay.setPayStatus(2);
             updatePay.setPayFailTime(now);

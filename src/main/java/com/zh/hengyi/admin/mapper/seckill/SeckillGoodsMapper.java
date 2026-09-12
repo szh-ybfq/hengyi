@@ -59,4 +59,5 @@ public interface SeckillGoodsMapper extends BaseMapper<SeckillGoods> {
                     .ge(SeckillGoods::getSeckillSold, count)
         );
     }
+
 }

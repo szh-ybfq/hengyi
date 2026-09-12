@@ -1,12 +1,11 @@
 package com.zh.hengyi.admin.service.product;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.zh.hengyi.admin.model.dto.product.ProductCategoryAddDTO;
-import com.zh.hengyi.admin.model.dto.product.ProductCategoryEditDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductCategoryAddDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductCategoryEditDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductCategory;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.zh.hengyi.admin.model.vo.product.ProductCategoryOptionVO;
-import com.zh.hengyi.admin.model.vo.product.ProductCategoryTreeVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductCategoryOptionVO;
+import com.zh.hengyi.admin.model.vo.product.admin.ProductCategoryTreeVO;
 
 import java.util.List;
 

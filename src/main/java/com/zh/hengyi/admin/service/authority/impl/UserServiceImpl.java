@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.authority.UserRoleMapper;
 import com.zh.hengyi.admin.model.dto.authority.user.*;
-import com.zh.hengyi.admin.model.entity.authority.UserRole;
+import com.zh.hengyi.admin.model.entity.authority.admin.UserRole;
 import com.zh.hengyi.admin.model.vo.authority.user.UserFormVO;
 import com.zh.hengyi.admin.model.vo.authority.user.UserLoginVO;
 import com.zh.hengyi.admin.model.vo.authority.user.UserPageVO;
@@ -19,11 +19,10 @@ import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.config.sercurity.login.LoginUser;
 import com.zh.hengyi.config.sercurity.utils.jwt.JwtUtil;
 import com.zh.hengyi.admin.mapper.authority.UserMapper;
-import com.zh.hengyi.admin.model.entity.authority.User;
+import com.zh.hengyi.admin.model.entity.authority.admin.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 
 import org.springframework.security.authentication.*;
@@ -39,7 +38,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import static com.zh.hengyi.common.constant.AuthConstant.*;
 import static com.zh.hengyi.common.result.ResultCode.ADMIN_NOT_DELETE;
@@ -203,7 +201,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public void add(UserAddDTO dto) {
         validUsernameUnique(dto.getUsername());
         System.out.println("validUsernameUnique!!!!!!");
-        User user = BeanUtil.copyProperties(dto,User.class);
+        User user = BeanUtil.copyProperties(dto, User.class);
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         baseMapper.insert(user);
     }
@@ -224,7 +222,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(count>0){
             throw new BusinessException(ResultCode.USERNAME_EXIST);
         }
-        User user = BeanUtil.copyProperties(dto,User.class);
+        User user = BeanUtil.copyProperties(dto, User.class);
         baseMapper.updateById(user);
     }
 
@@ -269,7 +267,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     // 11.1 校验用户是否存在
     public void validUsernameExist(String username){
         User user = userMapper.selectOneByUsername(username);
-        if (user==null){
+        if (user ==null){
             throw new BusinessException(ResultCode.USER_NOT_EXIST);
         }
     }
@@ -277,7 +275,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     // 11.2 参数校验 校验用户名重名                         使用场景：并发注册、导入批量用户、重复注册提交
     public void validUsernameUnique(String username){
         User user = userMapper.selectOneByUsername(username);
-        if (user!=null){
+        if (user !=null){
             throw new BusinessException(ResultCode.USERNAME_EXIST);
         }
     }

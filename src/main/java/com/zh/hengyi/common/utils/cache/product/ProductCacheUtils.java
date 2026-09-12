@@ -5,14 +5,14 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.zh.hengyi.admin.mapper.product.ProductCategoryMapper;
-import com.zh.hengyi.admin.model.dto.product.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.admin.ProductSpuQueryDTO;
+import com.zh.hengyi.admin.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.admin.model.entity.product.ProductCategory;
+import com.zh.hengyi.common.constant.ProductConstant;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.component.rabbitmq.productCache.CacheDelayMsgDTO;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
@@ -29,7 +29,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -385,6 +384,30 @@ public class ProductCacheUtils {
 
         // 2. 关键词搜索参数：null转空字符串 + URL编码，屏蔽冒号、空格等特殊符号
         String rawName = Objects.toString(dto.getSpuName(), "");
+        // 最多保留50个字符，超出截断
+        if(rawName.length() > 50){
+            rawName = rawName.substring(0,50);
+        }
+        String safeSpuName = URLEncoder.encode(rawName, StandardCharsets.UTF_8);
+
+        return CACHE_KEY_PREFIX + pageNum + ":"
+                + pageSize + ":"
+                + safeSpuName + ":"
+                + categoryId + ":"
+                + status;
+    }
+
+    // 创建缓存key
+    public String buildCacheKeyByApp(ProductSpuCardQueryDTO dto) {
+        // 1. 数字参数：为空才转换，null转为"0"
+        String pageNum = Objects.toString(dto.getPageNum(), "1");
+        String pageSize = Objects.toString(dto.getPageSize(), "10");
+        String categoryId = Objects.toString(dto.getCategoryId(), "0");
+        String status = ProductConstant.PRODUCT_STATUS_UP.toString();
+
+        // 2. 关键词搜索参数：null转空字符串 + URL编码，屏蔽冒号、空格等特殊符号
+        String rawName = Objects.toString(dto.getSpuName(), "");
+
         // 最多保留50个字符，超出截断
         if(rawName.length() > 50){
             rawName = rawName.substring(0,50);

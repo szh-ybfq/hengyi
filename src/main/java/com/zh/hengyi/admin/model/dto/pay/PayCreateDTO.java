@@ -2,9 +2,10 @@ package com.zh.hengyi.admin.model.dto.pay;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@Builder
+@NoArgsConstructor // Jackson 反序列化 JSON 需要无参构造函数
 public class PayCreateDTO {
     @NotNull(message = "订单id不能为空")
     private Long orderId;

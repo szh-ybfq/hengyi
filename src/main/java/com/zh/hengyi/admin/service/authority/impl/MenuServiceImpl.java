@@ -11,7 +11,7 @@ import com.zh.hengyi.admin.mapper.authority.UserRoleMapper;
 import com.zh.hengyi.admin.model.dto.authority.menu.MenuAddDTO;
 import com.zh.hengyi.admin.model.dto.authority.menu.MenuEditDTO;
 import com.zh.hengyi.admin.model.dto.authority.menu.MenuQueryDTO;
-import com.zh.hengyi.admin.model.entity.authority.Menu;
+import com.zh.hengyi.admin.model.entity.authority.admin.Menu;
 import com.zh.hengyi.admin.model.vo.authority.menu.MenuTreeVO;
 import com.zh.hengyi.admin.model.vo.authority.menu.MenuFormVO;
 import com.zh.hengyi.admin.service.authority.MenuService;

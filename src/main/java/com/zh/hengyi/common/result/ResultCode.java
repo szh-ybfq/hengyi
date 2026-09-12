@@ -12,6 +12,8 @@ public enum ResultCode {
 
     // 参数异常 40
     PARAM_ERROR(400, "请求参数错误"),
+    AUTHORIZATION_ERROR(401, "请求鉴权失败"),
+    AUTHORIZATION_NOT_ERROR(403, "请求未通过鉴权验证"),
     VALID_PARAM_ERROR(4001, "请求参数错误"),
 
     /**
@@ -87,7 +89,8 @@ public enum ResultCode {
      */
     ORDER_ERROR(4600, "订单异常"),
     ORDER_NOT_EXIST(4601, "订单不存在"),
-    ORDER_CANCEL_FORBID(4602, "禁止取消订单"),
+    ORDER_CANCEL_FORBID(4602, "订单非待支付状态，禁止取消订单"),
+    ORDER_CANCEL_UNIQUE_FORBID(4602, "禁止重复取消订单"),
     ORDER_PAY_FORBID(4603, "订单非待支付状态，无法发起支付"),
     ORDER_NOT_SLEF_OPERATE_FORBID(4604, "禁止取消订单，该订单不是您创建的订单"),
     ORDER_NOT_SLEF_REFUND_OPERATE_FORBID(4605, "仅本人订单可退款"),
@@ -164,7 +167,12 @@ public enum ResultCode {
     SECKILL_GOODS_NAME_NOT_UNIQUE(4920, "秒杀活动重名，请再检查名称"),
     SECKILL_ACTIVITY_NOT_OPEN(4921, "秒杀未开启"),
     SECKILL_OUT_USER_LIMIT(4922, "超出每人限购数量"),
-    SECKILL_ORDER_NOT_EXIST(4923, "秒杀订单不存在");
+    SECKILL_ORDER_NOT_EXIST(4923, "秒杀订单不存在"),
+    SECKILL_FLOW_LIMIT(4924, "活动火爆，请稍后重试"),
+    SECKILL_DEGRADE(4925, "服务异常，秒杀活动暂时无法访问"),
+    SECKILL_REDIS_DEGRADE(4926, "Redis服务异常，秒杀活动暂时无法访问"),
+    SECKILL_GOODS_DEGRADE(4927, "商品服务暂时不可用，请稍后重试"),
+    SYSTEM_ERROR(4928, "访问受限");
 
     private final Integer code;
     private final String msg;

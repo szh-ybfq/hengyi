@@ -1,6 +1,6 @@
 package com.zh.hengyi.admin.mapper.authority;
 
-import com.zh.hengyi.admin.model.entity.authority.Menu;
+import com.zh.hengyi.admin.model.entity.authority.admin.Menu;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 

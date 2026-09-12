@@ -13,6 +13,10 @@ public final class OrderConstant {
     public static final Integer ORDER_REFUND_SUCCESS = 6;// 退款成功
     public static final Integer ORDER_REFUND_CANCEL = 7; // 拒绝退款
 
+    // 订单类型
+    public static final Integer ORDER_NORMAL = 0;// 普通订单
+    public static final Integer ORDER_SECKILL = 1; // 秒杀订单
+
     // 私有构造禁止实例化
     private OrderConstant(){}
 }

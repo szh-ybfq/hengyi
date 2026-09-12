@@ -7,18 +7,14 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zh.hengyi.admin.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.admin.mapper.stock.StockLogMapper;
 import com.zh.hengyi.admin.mapper.stock.StockMapper;
-import com.zh.hengyi.admin.model.dto.product.ProductSkuAddDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockDeductDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockEditDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockLogDTO;
 import com.zh.hengyi.admin.model.dto.stock.StockRollbackDTO;
 import com.zh.hengyi.admin.model.entity.BaseEntity;
-import com.zh.hengyi.admin.model.entity.product.ProductSku;
-import com.zh.hengyi.admin.model.entity.product.ProductSpu;
 import com.zh.hengyi.admin.model.entity.stock.Stock;
 import com.zh.hengyi.admin.model.entity.stock.StockLog;
 import com.zh.hengyi.admin.model.vo.stock.StockVO;
-import com.zh.hengyi.admin.service.stock.StockLogService;
 import com.zh.hengyi.admin.service.stock.StockService;
 import com.zh.hengyi.common.constant.StockConstant;
 import com.zh.hengyi.common.exception.BusinessException;
@@ -300,7 +296,7 @@ public class StockServiceImpl extends ServiceImpl<StockMapper, Stock> implements
                 .seckillGoodsId(skuId)
                 .changeType(StockConstant.CHANGE_TYPE_SECKILL_DEDUCT)
                 .changeNum(seckillStock)
-                .remark("秒杀商品sku id：{}，扣减可用库存成功" + skuId)
+                .remark("秒杀商品sku id："+skuId+"，扣减可用库存成功")
                 .build());
         log.info("秒杀商品sku id：{}，扣减可用库存成功，并写入库存流水",skuId);
     };
