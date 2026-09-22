@@ -2,9 +2,9 @@ package com.zh.hengyi.component.task.seckill;
 
 
 import com.alibaba.fastjson2.JSON;
-import com.zh.hengyi.admin.mapper.seckill.SeckillLocalMsgMapper;
-import com.zh.hengyi.admin.model.dto.seckill.SeckillOrderMsgDTO;
-import com.zh.hengyi.admin.model.entity.seckill.SeckillLocalMsg;
+import com.zh.hengyi.application.mapper.seckill.SeckillLocalMsgMapper;
+import com.zh.hengyi.application.model.dto.seckill.SeckillOrderMsgDTO;
+import com.zh.hengyi.application.model.entity.seckill.SeckillLocalMsg;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;

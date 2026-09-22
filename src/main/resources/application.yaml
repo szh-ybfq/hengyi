@@ -4,11 +4,30 @@ server:
 spring:
   application:
     name: hengyi
+#  elasticsearch:
+#    rest:
+#      uris: http://127.0.0.1:9200
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: 1234
+#  datasource:
+#    dynamic:
+#      primary: master # 默认数据源：不写@DS注解时，默认走master主库
+#      strict: false
+#      datasource:
+#        master:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://127.0.0.1:3306/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#          username: root
+#          password: 123456
+#        slave:
+#          driver-class-name: com.mysql.cj.jdbc.Driver
+#          url: jdbc:mysql://127.0.0.1:3307/ziyange?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#          username: root
+#          password: 123456
+
   # redis
   data:
     redis:

@@ -1,11 +1,10 @@
 package com.zh.hengyi.component.rabbitmq.seckill;
 
 import com.rabbitmq.client.Channel;
-import com.zh.hengyi.admin.mapper.seckill.SeckillLocalMsgConsumeMapper;
-import com.zh.hengyi.admin.model.dto.seckill.SeckillOrderMsgDTO;
-import com.zh.hengyi.admin.model.entity.seckill.SeckillLocalMsgConsume;
-import com.zh.hengyi.admin.service.seckill.SeckillOrderService;
-import lombok.RequiredArgsConstructor;
+import com.zh.hengyi.application.mapper.seckill.SeckillLocalMsgConsumeMapper;
+import com.zh.hengyi.application.model.dto.seckill.SeckillOrderMsgDTO;
+import com.zh.hengyi.application.model.entity.seckill.SeckillLocalMsgConsume;
+import com.zh.hengyi.application.service.seckill.SeckillOrderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -16,7 +15,6 @@ import java.io.IOException;
 
 import static com.zh.hengyi.common.constant.SeckillConstant.SECKILL_LOCAL_MSG_CONSUME_STATUS_HAVING;
 import static com.zh.hengyi.config.rabbitmq.SeckillRabbitConfig.SECKILL_ORDER_QUEUE;
-import static org.springframework.amqp.rabbit.core.RabbitAdmin.QUEUE_NAME;
 
 @Component
 @Slf4j
@@ -44,9 +42,9 @@ public class SeckillOrderConsumer {
             // （一）“先查后改并发冲突覆盖”：如果先查询本地消息消费记录，再消费，可能会同时查到重复消费，所以直接修改，看结果
             // （二）“消息重复消费”：幂等校验，插入消费记录，唯一索引冲突，说明消息已处理
             // 1.1 幂等校验
-            int insertCnt;
+            int insertRow;
             try {
-                insertCnt = seckillLocalMsgConsumeMapper.insert(record);
+                insertRow = seckillLocalMsgConsumeMapper.insert(record);
             } catch (DuplicateKeyException e) {
                 log.info("秒杀消息重复消费，跳过 msgId:{}", msgId);
                 channel.basicAck(message.getMessageProperties().getDeliveryTag(), false); //手动确认
@@ -54,7 +52,7 @@ public class SeckillOrderConsumer {
             }
 
             // 1.2 兜底重试：如果出现未知异常插入失败（虽未重复，但可能违反库其他约束）
-            if (insertCnt == 0) {
+            if (insertRow == 0) {
                 channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
                 return;
             }

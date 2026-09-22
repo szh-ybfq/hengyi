@@ -1,12 +1,11 @@
 package com.zh.hengyi.component.rabbitmq.order;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rabbitmq.client.Channel;
-import com.zh.hengyi.admin.mapper.order.OrderMqIdempotentMapper;
-import com.zh.hengyi.admin.model.entity.order.Order;
-import com.zh.hengyi.admin.model.entity.order.OrderMqIdempotent;
-import com.zh.hengyi.admin.service.order.OrderService;
-import com.zh.hengyi.admin.service.seckill.SeckillOrderService;
+import com.zh.hengyi.application.mapper.order.OrderMqIdempotentMapper;
+import com.zh.hengyi.application.model.entity.order.Order;
+import com.zh.hengyi.application.model.entity.order.OrderMqIdempotent;
+import com.zh.hengyi.application.service.order.OrderService;
+import com.zh.hengyi.application.service.seckill.SeckillOrderService;
 import com.zh.hengyi.common.constant.OrderConstant;
 import com.zh.hengyi.config.rabbitmq.OrderDelayMqConfig;
 import jakarta.annotation.Resource;

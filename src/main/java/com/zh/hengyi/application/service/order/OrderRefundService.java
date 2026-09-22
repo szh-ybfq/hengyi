@@ -1,0 +1,21 @@
+package com.zh.hengyi.application.service.order;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.zh.hengyi.application.model.dto.order.OrderRefundApplyDTO;
+import com.zh.hengyi.application.model.entity.order.Order;
+import com.zh.hengyi.application.model.entity.order.OrderRefund;
+
+/**
+* @author HENGGE
+* @description 针对表【order_refund(订单退款记录表)】的数据库操作Service
+* @createDate 2026-08-12 20:25:57
+*/
+public interface OrderRefundService extends IService<OrderRefund> {
+    void applyRefund(OrderRefundApplyDTO dto);
+
+    void validOrderRefundExist(Long orderId);
+
+    void validOrderRefundSelf(Order order, Long userId);
+
+    void validOrderRefundStatus(Order order);
+}

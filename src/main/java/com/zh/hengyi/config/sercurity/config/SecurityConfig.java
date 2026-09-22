@@ -41,16 +41,17 @@ public class SecurityConfig {
                                 "/admin/api/v1/user/login",
                                 "/admin/api/v1/user/register",
                                 "/admin/api/v1/user/logout",
+                                "/user/api/v1/login",
+                                "/user/api/v1/register",
+                                "/user/api/v1/logout",
                                 "/swagger-ui/**",
                                 "/swagger-resources/**",
                                 "/v3/api-docs/**",
                                 "/doc.html",
                                 "/webjars/**",
-                                "/favicon.ico",
-                                "/*"
-
+                                "/favicon.ico"
                         )
-                        .permitAll()                    //permitAll()：无条件放行，不需要登录、不需要 token
+                        .permitAll()                    //无条件放行，不需要登录、不需要 token
                         .anyRequest().authenticated()   //anyRequest()：剩下所有其他接口，authenticated()：必须完成认证（登录成功携带有效 token）才能访问
                 )
                 .exceptionHandling(ex -> {

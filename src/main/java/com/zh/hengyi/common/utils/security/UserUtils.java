@@ -1,6 +1,6 @@
 package com.zh.hengyi.common.utils.security;
 
-import com.zh.hengyi.admin.model.entity.authority.admin.User;
+import com.zh.hengyi.application.model.entity.authority.admin.User;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.config.sercurity.utils.SecurityUtils;
