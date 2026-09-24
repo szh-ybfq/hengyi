@@ -9,7 +9,7 @@ import com.zh.hengyi.application.mapper.product.ProductCategoryMapper;
 import com.zh.hengyi.application.model.dto.product.admin.ProductSpuQueryDTO;
 import com.zh.hengyi.application.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.application.model.entity.product.ProductCategory;
-import com.zh.hengyi.common.constant.ProductConstant;
+import com.zh.hengyi.common.enums.goods.GoodsStatusEnum;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.component.rabbitmq.productCache.CacheDelayMsgDTO;
@@ -403,7 +403,7 @@ public class ProductCacheUtils {
         String pageNum = Objects.toString(dto.getPageNum(), "1");
         String pageSize = Objects.toString(dto.getPageSize(), "10");
         String categoryId = Objects.toString(dto.getCategoryId(), "0");
-        String status = ProductConstant.PRODUCT_STATUS_UP.toString();
+        String status = GoodsStatusEnum.GOODS_UP.getStatus().toString();
 
         // 2. 关键词搜索参数：null转空字符串 + URL编码，屏蔽冒号、空格等特殊符号
         String rawName = Objects.toString(dto.getSpuName(), "");

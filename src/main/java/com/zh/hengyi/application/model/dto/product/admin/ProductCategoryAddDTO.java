@@ -10,7 +10,7 @@ import lombok.Data;
 public class ProductCategoryAddDTO {
 
     @NotNull(message = "父分类ID不能为空")
-    @Schema(description = "父分类id，0代表顶级", example = "0")
+    @Schema(description = "父分类id", example = "0 顶级菜单")
     private Long parentId;
 
     @NotBlank(message = "分类名称不能为空")
@@ -20,6 +20,6 @@ public class ProductCategoryAddDTO {
     @Schema(description = "排序")
     private Integer sort;
 
-    @Schema(description = "状态：0启用 1禁用")
+    @Schema(description = "状态", example = "0启用 1禁用")
     private Integer status;
 }

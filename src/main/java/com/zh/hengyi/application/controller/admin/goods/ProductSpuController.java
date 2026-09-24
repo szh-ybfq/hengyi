@@ -6,6 +6,8 @@ import com.zh.hengyi.application.model.dto.product.admin.ProductSpuEditDTO;
 import com.zh.hengyi.application.model.dto.product.admin.ProductSpuQueryDTO;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuFormVO;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuPageVO;
+import com.zh.hengyi.application.service.file.FileService;
+import com.zh.hengyi.application.service.product.ProductImageService;
 import com.zh.hengyi.application.service.product.ProductSpuService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProductSpuController {
 
     private final ProductSpuService spuService;
+    private final ProductImageService productImageService;
 
     @GetMapping("/page")
     @Operation(summary = "SPU商品分页")   // @Validated 针对Get RequestParam校验
@@ -60,6 +63,13 @@ public class ProductSpuController {
     @Operation(summary = "删除SPU商品")
     public Result<Void> remove(@PathVariable Long id) {
         spuService.removeById(id);
+        return Result.success();
+    }
+
+    @DeleteMapping("/image/delete")
+    @Operation(summary = "删除文件")
+    public Result<Void> remove(@RequestParam("fileUrl") String fileUrl) {
+        productImageService.deleteByUrl(fileUrl);
         return Result.success();
     }
 }

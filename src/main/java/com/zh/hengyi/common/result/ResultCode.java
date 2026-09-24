@@ -10,11 +10,17 @@ public enum ResultCode {
     // 失败
     ERROR(500, "操作失败"),
 
+    SYSTEM_ERROR(400, "系统异常"),
+
+
     // 参数异常 40
-    PARAM_ERROR(400, "请求参数错误"),
-    AUTHORIZATION_ERROR(401, "请求鉴权失败"),
-    AUTHORIZATION_NOT_ERROR(403, "请求未通过鉴权验证"),
-    VALID_PARAM_ERROR(4001, "请求参数错误"),
+    PARAM_ERROR(4010, "请求参数错误"),
+    VALID_PARAM_ERROR(4011, "请求参数校验失败"),
+    ILLEGAL_PARAM_ERROR(4012, "请求参数格式非法"),
+    AUTHORIZATION_ERROR(4021, "请求鉴权失败"),
+    AUTHORIZATION_NOT_ERROR(4022, "请求未通过鉴权验证"),
+
+
 
     /**
      * 用户相关 41
@@ -68,8 +74,10 @@ public enum ResultCode {
     SPU_ERROR(4420, "商品异常"),
     SPU_NOT_EXIST(4421, "商品不存在"),
     SPU_NAME_DUPLICATE(4422, "商品名称已存在"),
-    SPU_SKU_EMPTY(4423, "至少填写一条SKU规格"),
-    SKU_NOT_EXIST(4424, "该商品规格不存在"),
+    SPU_IMAGE_NOT_EXIST(4423, "商品图片不存在"),
+    SPU_IMAGE_MAIN_NUM_OUTPUT(4424, "商品主图仅可上传一张"),
+    SPU_SKU_EMPTY(4434, "至少填写一条SKU规格"),
+    SKU_NOT_EXIST(4435, "该商品规格不存在"),
 
 
     CACHE_QUERY_EMPTY(4441, "缓存查询异常"),
@@ -172,7 +180,23 @@ public enum ResultCode {
     SECKILL_DEGRADE(4925, "服务异常，秒杀活动暂时无法访问"),
     SECKILL_REDIS_DEGRADE(4926, "Redis服务异常，秒杀活动暂时无法访问"),
     SECKILL_GOODS_DEGRADE(4927, "商品服务暂时不可用，请稍后重试"),
-    SYSTEM_ERROR(4928, "访问受限");
+
+    /**
+     * IO异常 5000
+     */
+    IO_ERROR(5000, "IO异常"),
+    FILE_NOT_EXIST(5011, "文件不存在"),
+    IMG_NOT_EXIST(5012, "图片不存在"),
+    VIDEO_NOT_EXIST(5013, "视频不存在"),
+    FILE_TYPE_EXIST(5016, "文件类型不存在,请检查后重试"),
+    UPLOAD_IMAGE_ERROR(5017, "上传图片失败"),
+    MAIN_IMAGE_EMPTY(5018, "商品主图为空，请检查后重试"),
+    DETAIL_IMAGE_EMPTY(5019, "商品详情图为空，请检查后重试"),
+    PARAM_IMAGE_EMPTY(5020, "商品参数图为空，请检查后重试"),
+    IMAGE_CONVERT_ERROR(5021, "图片类型转换失败"),
+    UPLOAD_IMAGES_ERROR(5022, "批量上传图片失败");
+
+
 
     private final Integer code;
     private final String msg;

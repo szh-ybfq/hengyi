@@ -12,6 +12,9 @@ public class ProductSkuAddDTO {
     @Schema(description = "规格json字符串")
     private String skuSpec;
 
+    @Schema(description = "sku规格图,未配置回退显示主图")
+    private String skuImg;
+
     @NotNull(message = "sku售价不能为空")
     @Schema(description = "sku售价")
     private BigDecimal price;

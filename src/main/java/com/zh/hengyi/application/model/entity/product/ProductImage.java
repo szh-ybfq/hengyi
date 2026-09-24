@@ -15,7 +15,7 @@ import lombok.Data;
 @Data
 public class ProductImage extends BaseEntity {
     /**
-     * 
+     * 主键
      */
     @TableId(type = IdType.AUTO)
     private Long id;
@@ -24,6 +24,12 @@ public class ProductImage extends BaseEntity {
      * spu主键
      */
     private Long spuId;
+
+
+    /**
+     * 图片类型
+     */
+    private Integer imageType;
 
     /**
      * 图片地址

@@ -6,15 +6,8 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @Data
-@Schema(description = "SPU表单回显VO")
-public class ProductSpuFormVO {
-    private Long id;
-    private Long categoryId;
-    private String spuName;
-    private String spuDescription;
-    private BigDecimal price;
-    private Integer status;
-    private List<ProductSkuFormVO> skuList;
+@Schema(description = "SPU图片回显VO")
+public class ProductSpuImageVO {
     private List<String> mainImgList;
     private List<String> detailImgList;
     private List<String> paramImgList;

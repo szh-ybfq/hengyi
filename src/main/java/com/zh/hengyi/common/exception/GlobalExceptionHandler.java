@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.util.IllegalFormatException;
@@ -85,10 +86,24 @@ public class GlobalExceptionHandler {
         return Result.error(ResultCode.DB_COMMON_ERROR.getCode(), ResultCode.DB_COMMON_ERROR.getMsg());
     }
 
-    // 5 系统未知异常
+    // 5 IO异常
+    @ExceptionHandler(IOException.class)
+    public Result<?> handleIOException(IOException e) {
+        log.error("[IO异常]", e);
+        return Result.error(ResultCode.IO_ERROR.getCode(), ResultCode.IO_ERROR.getMsg());
+    }
+
+    // 6 系统异常
     @ExceptionHandler(Exception.class)
     public Result<?> handleAllException(Exception e) {
-        log.error("[系统未知异常]", e);
-        return Result.error();
+        log.error("[系统异常]", e);
+        return Result.error(ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getMsg());
+    }
+
+    // 7 非法参数异常
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Result<?> handleIllegalArgumentException(IllegalArgumentException e) {
+        log.error("[请求参数格式非法]", e);
+        return Result.error(ResultCode.ILLEGAL_PARAM_ERROR.getCode(),  ResultCode.ILLEGAL_PARAM_ERROR.getMsg());
     }
 }

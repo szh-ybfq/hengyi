@@ -22,6 +22,14 @@
 
 
     <dependencies>
+
+        <!--阿里云oss sdk-->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.17.4</version>
+        </dependency>
+
         <!-- 读写分离 主从库 依赖 -->
         <dependency>
             <groupId>com.baomidou</groupId>
@@ -63,12 +71,12 @@
         </dependency>
 
         <!--  devtools 热部署     -->
-        <!--<dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
-            <optional>true</optional> &lt;!&ndash;  防止子项目继承 devtools    &ndash;&gt;
-        </dependency>-->
+            <optional>true</optional> <!--  防止子项目继承 devtools    -->
+        </dependency>
 
         <!-- Caffeine 本地缓存高性能实现 -->
         <dependency>
