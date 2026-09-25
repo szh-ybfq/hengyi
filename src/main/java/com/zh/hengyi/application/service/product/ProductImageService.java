@@ -1,11 +1,11 @@
 package com.zh.hengyi.application.service.product;
 
-import com.zh.hengyi.application.model.dto.product.admin.ProductSpuAddDTO;
-import com.zh.hengyi.application.model.dto.product.admin.ProductSpuEditDTO;
 import com.zh.hengyi.application.model.dto.product.admin.ProductSpuImageDTO;
+import com.zh.hengyi.application.model.entity.file.FileBatchUploadVO;
 import com.zh.hengyi.application.model.entity.product.ProductImage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuImageVO;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,12 +16,20 @@ import java.util.List;
 */
 public interface ProductImageService extends IService<ProductImage> {
 
+    String uploadImage(Long spuId,MultipartFile file, String fileType);
+    FileBatchUploadVO uploadImages(Long spuId,List<MultipartFile> fileList, String fileType);
     void batchSave(ProductSpuImageDTO dto);
     void batchUpadte(ProductSpuImageDTO dto);
+
+    ProductSpuImageVO getImageList(Long spuId);
+    List<String> getImageUrlBySpuId(Long spuId);
+    List<String> getImageUrlList();
+
+    void deleteSingleImageByUrl(String imgUrl);
+    void deleteBatchImagesByUrl(List<String> imgUrls);
+
     void validSpuImageExist(Long id);
     void validMainImagesNum(List<String> mainImgList);
 
-    ProductSpuImageVO getList(Long id);
 
-    void deleteByUrl(String fileUrl);
 }

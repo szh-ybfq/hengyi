@@ -1,4 +1,4 @@
-package com.zh.hengyi.component.task.seckill;
+package com.zh.hengyi.component.schedule.seckill;
 
 
 import com.alibaba.fastjson2.JSON;
@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +19,9 @@ import java.util.List;
 import static com.zh.hengyi.common.constant.SeckillConstant.SECKILL_LOCAL_MSG_RETRY_COUNT_MAX;
 
 @Slf4j
-@Service
+@Component
 @RequiredArgsConstructor
-public class SeckillLocalMsgTaskService {
+public class SeckillLocalMsgTask {
 
     private final SeckillLocalMsgMapper seckillLocalMsgMapper;
 

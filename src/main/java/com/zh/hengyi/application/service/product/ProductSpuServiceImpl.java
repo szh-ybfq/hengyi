@@ -130,7 +130,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         }
 
         // 4、查询商品图片
-        ProductSpuImageVO imageList  = productImageService.getList(id);
+        ProductSpuImageVO imageList  = productImageService.getImageList(id);
         vo.setMainImgList(imageList.getMainImgList());
         vo.setDetailImgList(imageList.getDetailImgList());
         vo.setParamImgList(imageList.getParamImgList());
@@ -247,20 +247,24 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void removeById(Long id) {
+        // 1 校验商品存在
         ProductSpu spu = validSpuExist(id);
         Long categoryId = spu.getCategoryId();
 
-        // 1. 调用带事务的数据库删除方法
+        // 2 删除商品
         baseMapper.deleteById(id);
-        // 先删除库存记录，再删除sku列表
+        // 3 删除库存
         stockService.batchLogicDeleteStock(skuMapper.selectSkuIdsBySpuId(id));
+        // 4 删除商品规格
         skuMapper.delete(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getSpuId, id));
-        productImageService.remove(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getSpuId, id));
+        // 5 先获取商品图片urls，删除商品图片oss
+        List<String> imageUrls = productImageService.getImageUrlBySpuId(spu.getId());
+        productImageService.deleteBatchImagesByUrl(imageUrls);
 
-        // 2. 事务提交完成后，再清理缓存（此时数据库数据已删除）
+        // 6 事务提交完成后，再清理缓存（此时数据库数据已删除）
         productCacheUtils.clearCategoryPageCache(categoryId);
 
-        // 3.删除索引库下该文档
+        // 6 删除索引库下该文档
         // esProductSearchService.deleteDoc(id);
     }
 

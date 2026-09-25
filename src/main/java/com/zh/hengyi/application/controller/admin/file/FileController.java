@@ -1,27 +1,20 @@
 package com.zh.hengyi.application.controller.admin.file;
 
-import com.zh.hengyi.application.model.dto.product.admin.ProductCategoryAddDTO;
-import com.zh.hengyi.application.model.dto.product.admin.ProductCategoryEditDTO;
 import com.zh.hengyi.application.model.entity.file.FileBatchUploadVO;
-import com.zh.hengyi.application.model.vo.product.admin.ProductCategoryOptionVO;
-import com.zh.hengyi.application.model.vo.product.admin.ProductCategoryTreeVO;
 import com.zh.hengyi.application.service.file.FileService;
-import com.zh.hengyi.common.enums.file.GoodsFileEnum;
 import com.zh.hengyi.common.result.Result;
-import com.zh.hengyi.common.utils.enums.EnumConvertUtil;
-import com.zh.hengyi.config.oss.aliyun.AliOssUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
+/*
+* 仅上传到oss，不上传到数据库
+* */
 @RestController
 @RequestMapping("/admin/api/v1/file")
 @Tag(name = "后台OSS文件管理模块")
@@ -68,5 +61,4 @@ public class FileController {
     }*/
 
     // 删除根据具体业务需求去写，因为不仅删除oss，还要删除表记录
-
 }

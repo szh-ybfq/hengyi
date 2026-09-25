@@ -1,14 +1,26 @@
 package com.zh.hengyi.config.oss.aliyun;
 
+import com.alibaba.cloud.commons.lang.StringUtils;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.ListObjectsV2Request;
+import com.aliyun.oss.model.ListObjectsV2Result;
 import com.aliyun.oss.model.OSSObject;
+import com.aliyun.oss.model.OSSObjectSummary;
+import com.zh.hengyi.common.exception.BusinessException;
+import com.zh.hengyi.common.result.ResultCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.UUID;
+
+import static com.zh.hengyi.common.enums.file.GoodsImageEnum.*;
 
 @Component
 public class AliOssUtil {
@@ -73,8 +85,8 @@ public class AliOssUtil {
      * @param fileUrl
      */
     public void deleteByUrl(String fileUrl) {
-        if (fileUrl == null || fileUrl.trim().isEmpty()) {
-            return;
+        if (StringUtils.isEmpty(fileUrl)) {
+            throw new BusinessException(ResultCode.IMG_HTTP_NOT_EXIST);
         }
         URL url;
         try {
@@ -132,5 +144,39 @@ public class AliOssUtil {
      */
     public String getUrlByObjectName(String objectName) {
         return buildUrl(objectName);
+    }
+
+    /**
+     * 列出商品图片目录下全部文件完整访问url
+     * 注意：过滤2分钟以内新文件，避免事务还未提交定时任务误删
+     * @return 完整http url集合
+     */
+    public List<String> listFileUrl(){
+        List<String> resultUrlList = new ArrayList<>();
+        List<String> prefixList = List.of(GOODS_MAIN.getDir(),GOODS_DETAILS.getDir(),GOODS_PARAMS.getDir());
+        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+        Date now = new Date();
+        for(String prefix : prefixList){
+            String continuationToken = null;
+            do {
+                ListObjectsV2Request req = new ListObjectsV2Request()
+                        .withBucketName(bucketName)
+                        .withPrefix(prefix)
+                        .withContinuationToken(continuationToken);
+                ListObjectsV2Result resp = ossClient.listObjectsV2(req);
+                for(OSSObjectSummary summary : resp.getObjectSummaries()){
+                    //过滤2分钟以内新建文件，防止事务还没提交就被当做垃圾删掉
+                    long diffMs = now.getTime() - summary.getLastModified().getTime();
+                    if(diffMs < Duration.ofMinutes(2).toMillis()){
+                        continue;
+                    }
+                    //拼接完整访问url
+                    String fileUrl = buildUrl(summary.getKey());
+                    resultUrlList.add(fileUrl);
+                }
+                continuationToken = resp.getNextContinuationToken();
+            } while (continuationToken != null && !continuationToken.isEmpty());
+        }
+        return resultUrlList;
     }
 }

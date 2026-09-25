@@ -1,11 +1,10 @@
 package com.zh.hengyi.application.service.file;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.cloud.commons.lang.StringUtils;
 import com.zh.hengyi.application.model.entity.file.FileBatchUploadVO;
-import com.zh.hengyi.common.enums.file.GoodsFileEnum;
+import com.zh.hengyi.common.enums.file.GoodsImageEnum;
 import com.zh.hengyi.common.exception.BusinessException;
-import com.zh.hengyi.common.result.Result;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.enums.EnumConvertUtil;
 import com.zh.hengyi.config.oss.aliyun.AliOssUtil;
@@ -24,7 +23,7 @@ public class FileServiceImpl implements FileService {
     private final AliOssUtil aliOssUtil;
 
     /**
-     * 1、上传单个图片
+     // 1 通用oss上传单张图片
      * 边界情况：1 形参不存在
      *         2 图片类型转换失败
      *         3 图片上传失败
@@ -35,24 +34,23 @@ public class FileServiceImpl implements FileService {
         validFileAndTpyeExist(file, fileType);
 
         // 2、图片类型转换(如主图枚举->主图目录)
-        GoodsFileEnum goodsFileEnum = EnumConvertUtil.strToEnum(GoodsFileEnum.class, fileType);
-        if (goodsFileEnum == null) {
+        GoodsImageEnum goodsImageEnum = EnumConvertUtil.strToEnum(GoodsImageEnum.class, fileType);
+        if (goodsImageEnum == null) {
             throw new BusinessException(ResultCode.IMAGE_CONVERT_ERROR);
         }
 
         // 3、图片上传
         try {
-            return aliOssUtil.upload(file,goodsFileEnum.getDir());
+            return aliOssUtil.upload(file, goodsImageEnum.getDir());
         } catch (IOException e) {
-            throw new BusinessException(ResultCode.UPLOAD_IMAGE_ERROR);
+            throw new BusinessException(ResultCode.UPLOAD_IMAGE_OSS_ERROR);
         }
     }
 
 
     /**
-     * 2、批量上传图片（复用单个逻辑）
+     * 2、通用oss批量上传图片（复用单个逻辑）
      * 边界情况：1 上传多张图片时，部分上传失败 ----> 解决：部分成功、部分失败，继续执行，返回成功列表  + 失败信息
-     *
      */
     @Override
     public FileBatchUploadVO uploadImages(List<MultipartFile> fileList, String fileType) {
@@ -78,10 +76,15 @@ public class FileServiceImpl implements FileService {
         return dto;
     }
 
+
+
+    /**
+     * 3、通用oss删除图片
+     */
     @Override
     public void deleteImgByUrl(String fileUrl) {
         if (StrUtil.isBlank(fileUrl)) {
-            throw new BusinessException(ResultCode.IMG_NOT_EXIST);
+            throw new BusinessException(ResultCode.IMG_HTTP_NOT_EXIST);
         }
         aliOssUtil.deleteByUrl(fileUrl);
     }
@@ -97,7 +100,7 @@ public class FileServiceImpl implements FileService {
 
 
     private void validFileAndTpyeExist(MultipartFile file, String fileType) {
-        if (file == null) {
+        if (file.isEmpty()) {
             throw new BusinessException(ResultCode.FILE_NOT_EXIST);
         }
         if (fileType == null) {
