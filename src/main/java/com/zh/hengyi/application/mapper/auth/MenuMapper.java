@@ -1,4 +1,4 @@
-package com.zh.hengyi.application.mapper.authority;
+package com.zh.hengyi.application.mapper.auth;
 
 import com.zh.hengyi.application.model.entity.authority.admin.Menu;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;

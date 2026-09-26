@@ -1,13 +1,13 @@
-package com.zh.hengyi.application.service.authority;
+package com.zh.hengyi.application.service.auth;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zh.hengyi.application.mapper.authority.MenuMapper;
-import com.zh.hengyi.application.mapper.authority.RoleMenuMapper;
-import com.zh.hengyi.application.mapper.authority.UserRoleMapper;
+import com.zh.hengyi.application.mapper.auth.MenuMapper;
+import com.zh.hengyi.application.mapper.auth.RoleMenuMapper;
+import com.zh.hengyi.application.mapper.auth.UserRoleMapper;
 import com.zh.hengyi.application.model.dto.authority.menu.MenuAddDTO;
 import com.zh.hengyi.application.model.dto.authority.menu.MenuEditDTO;
 import com.zh.hengyi.application.model.dto.authority.menu.MenuQueryDTO;

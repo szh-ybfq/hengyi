@@ -7,7 +7,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuImageVO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
 * @author HENGGE
@@ -23,6 +25,7 @@ public interface ProductImageService extends IService<ProductImage> {
 
     ProductSpuImageVO getImageList(Long spuId);
     List<String> getImageUrlBySpuId(Long spuId);
+    Map<Long,String> getMainImageListBySpuIds(List<Long> spuIds);
     List<String> getImageUrlList();
 
     void deleteSingleImageByUrl(String imgUrl);

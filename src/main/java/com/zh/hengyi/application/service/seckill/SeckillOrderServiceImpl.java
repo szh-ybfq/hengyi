@@ -19,7 +19,7 @@ import com.zh.hengyi.application.model.entity.product.ProductSpu;
 import com.zh.hengyi.application.model.entity.seckill.SeckillGoods;
 import com.zh.hengyi.application.model.entity.seckill.SeckillLocalMsg;
 import com.zh.hengyi.application.model.entity.stock.StockLog;
-import com.zh.hengyi.application.service.authority.UserService;
+import com.zh.hengyi.application.service.auth.UserService;
 import com.zh.hengyi.application.service.order.OrderService;
 import com.zh.hengyi.application.service.product.ProductSkuService;
 import com.zh.hengyi.application.service.product.ProductSpuService;

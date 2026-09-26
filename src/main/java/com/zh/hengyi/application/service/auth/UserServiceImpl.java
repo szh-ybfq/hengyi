@@ -1,4 +1,4 @@
-package com.zh.hengyi.application.service.authority;
+package com.zh.hengyi.application.service.auth;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
@@ -6,7 +6,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zh.hengyi.application.mapper.authority.UserRoleMapper;
+import com.zh.hengyi.application.mapper.auth.UserRoleMapper;
 import com.zh.hengyi.application.model.dto.authority.user.*;
 import com.zh.hengyi.application.model.entity.authority.admin.UserRole;
 import com.zh.hengyi.application.model.vo.authority.user.UserFormVO;
@@ -17,7 +17,7 @@ import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.config.sercurity.login.LoginUser;
 import com.zh.hengyi.config.sercurity.utils.jwt.JwtUtil;
-import com.zh.hengyi.application.mapper.authority.UserMapper;
+import com.zh.hengyi.application.mapper.auth.UserMapper;
 import com.zh.hengyi.application.model.entity.authority.admin.User;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

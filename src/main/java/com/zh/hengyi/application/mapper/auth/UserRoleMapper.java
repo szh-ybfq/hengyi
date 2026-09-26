@@ -1,4 +1,4 @@
-package com.zh.hengyi.application.mapper.authority;
+package com.zh.hengyi.application.mapper.auth;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;

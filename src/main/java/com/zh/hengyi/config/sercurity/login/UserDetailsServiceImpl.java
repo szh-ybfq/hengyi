@@ -1,6 +1,6 @@
 package com.zh.hengyi.config.sercurity.login;
 
-import com.zh.hengyi.application.mapper.authority.UserMapper;
+import com.zh.hengyi.application.mapper.auth.UserMapper;
 import com.zh.hengyi.application.model.entity.authority.admin.User;
 import jakarta.annotation.Resource;
 import org.springframework.security.core.userdetails.UserDetails;

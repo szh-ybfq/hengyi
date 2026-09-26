@@ -4,7 +4,7 @@ import com.zh.hengyi.application.model.dto.authority.menu.MenuAddDTO;
 import com.zh.hengyi.application.model.dto.authority.menu.MenuEditDTO;
 import com.zh.hengyi.application.model.dto.authority.menu.MenuQueryDTO;
 import com.zh.hengyi.application.model.vo.authority.menu.MenuFormVO;
-import com.zh.hengyi.application.service.authority.MenuService;
+import com.zh.hengyi.application.service.auth.MenuService;
 import com.zh.hengyi.application.model.vo.authority.menu.MenuTreeVO;
 import com.zh.hengyi.common.result.Result;
 import com.zh.hengyi.config.sercurity.utils.SecurityUtils;

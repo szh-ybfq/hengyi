@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zh.hengyi.application.model.entity.product.ProductImage;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuImageVO;
-import com.zh.hengyi.common.enums.file.GoodsImageEnum;
+import com.zh.hengyi.common.enums.file.image.GoodsImageEnum;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;

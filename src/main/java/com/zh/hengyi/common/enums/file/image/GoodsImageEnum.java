@@ -1,4 +1,4 @@
-package com.zh.hengyi.common.enums.file;
+package com.zh.hengyi.common.enums.file.image;
 
 
 import lombok.Getter;

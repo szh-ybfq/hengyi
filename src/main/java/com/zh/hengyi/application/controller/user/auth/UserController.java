@@ -4,7 +4,7 @@ package com.zh.hengyi.application.controller.user.auth;
 import com.zh.hengyi.application.model.dto.authority.user.*;
 import com.zh.hengyi.application.model.vo.authority.user.UserFormVO;
 import com.zh.hengyi.application.model.vo.authority.user.UserLoginVO;
-import com.zh.hengyi.application.service.authority.UserService;
+import com.zh.hengyi.application.service.auth.UserService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

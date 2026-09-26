@@ -12,7 +12,7 @@ import com.zh.hengyi.application.model.entity.product.ProductImage;
 import com.zh.hengyi.application.mapper.product.ProductImageMapper;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuImageVO;
 import com.zh.hengyi.application.service.file.FileService;
-import com.zh.hengyi.common.enums.file.GoodsImageEnum;
+import com.zh.hengyi.common.enums.file.image.GoodsImageEnum;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.enums.EnumConvertUtil;
@@ -22,8 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -150,6 +152,36 @@ public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, Pro
         }
         return this.list(new LambdaQueryWrapper<ProductImage>().eq(ProductImage::getSpuId, spuId)).stream().map(ProductImage::getImageUrl).toList();
     }
+
+    /**
+     * 批量查询spu对应的主图
+     * @param spuIds
+     * @return key:spuId value:主图url，无图片返回空字符串
+     */
+    @Override
+    public Map<Long, String> getMainImageListBySpuIds(List<Long> spuIds) {
+        // 参数校验
+        if(CollUtil.isEmpty(spuIds)){
+            return Collections.emptyMap();
+        }
+
+        List<ProductImage> list = this.list(new LambdaQueryWrapper<ProductImage>()
+                .in(ProductImage::getSpuId, spuIds)
+                .eq(ProductImage::getImageType, GoodsImageEnum.GOODS_MAIN.getType()));
+
+        //先全部填充默认空字符串，健壮性，防止后续空指针异常
+        Map<Long,String> resultMap = new HashMap<>();
+        for(Long sid : spuIds){
+            resultMap.put(sid,"");
+        }
+        //数据库查到覆盖值
+        for(ProductImage img : list){
+            resultMap.put(img.getSpuId(), img.getImageUrl());
+        }
+        return resultMap;
+    }
+
+
 
     /**
      * 获取所有商品图片url列表

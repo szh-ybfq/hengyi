@@ -1,4 +1,4 @@
-package com.zh.hengyi.application.mapper.authority;
+package com.zh.hengyi.application.mapper.auth;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;

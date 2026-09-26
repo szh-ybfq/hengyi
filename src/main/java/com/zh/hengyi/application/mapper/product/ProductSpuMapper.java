@@ -36,7 +36,7 @@ public interface ProductSpuMapper extends BaseMapper<ProductSpu> {
         );
     }
 
-    default IPage<ProductSpu> getPageByApp(Page<ProductSpu> page, ProductSpuCardQueryDTO dto){
+    default Page<ProductSpu> getPageByApp(Page<ProductSpu> page, ProductSpuCardQueryDTO dto){
         return selectPage(page,new LambdaQueryWrapper<ProductSpu>()
                 .like(StrUtil.isNotBlank(dto.getSpuName()), ProductSpu::getSpuName, dto.getSpuName())
                 .eq(dto.getCategoryId() != null, ProductSpu::getCategoryId, dto.getCategoryId())

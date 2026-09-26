@@ -1,4 +1,4 @@
-package com.zh.hengyi.application.service.authority;
+package com.zh.hengyi.application.service.auth;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zh.hengyi.application.model.dto.authority.user.*;

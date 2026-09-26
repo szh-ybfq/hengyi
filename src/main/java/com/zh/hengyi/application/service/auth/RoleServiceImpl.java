@@ -1,11 +1,11 @@
-package com.zh.hengyi.application.service.authority;
+package com.zh.hengyi.application.service.auth;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.zh.hengyi.application.mapper.authority.RoleMapper;
-import com.zh.hengyi.application.mapper.authority.RoleMenuMapper;
+import com.zh.hengyi.application.mapper.auth.RoleMapper;
+import com.zh.hengyi.application.mapper.auth.RoleMenuMapper;
 import com.zh.hengyi.application.model.dto.authority.role.RoleAddDTO;
 import com.zh.hengyi.application.model.dto.authority.role.RoleAssignMenuDTO;
 import com.zh.hengyi.application.model.dto.authority.role.RoleEditDTO;

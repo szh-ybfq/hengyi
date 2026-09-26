@@ -1,9 +1,8 @@
 package com.zh.hengyi.application.service.file;
 
-import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.zh.hengyi.application.model.entity.file.FileBatchUploadVO;
-import com.zh.hengyi.common.enums.file.GoodsImageEnum;
+import com.zh.hengyi.common.enums.file.image.GoodsImageEnum;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
 import com.zh.hengyi.common.utils.enums.EnumConvertUtil;

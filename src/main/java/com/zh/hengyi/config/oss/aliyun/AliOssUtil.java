@@ -20,7 +20,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static com.zh.hengyi.common.enums.file.GoodsImageEnum.*;
+import static com.zh.hengyi.common.enums.file.image.GoodsImageEnum.*;
 
 @Component
 public class AliOssUtil {

@@ -2,11 +2,16 @@ package com.zh.hengyi.application.service.product;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.ObjectCodec;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zh.hengyi.application.mapper.product.ProductSpuMapper;
 import com.zh.hengyi.application.mapper.product.ProductSkuMapper;
 import com.zh.hengyi.application.model.dto.product.admin.*;
@@ -20,6 +25,7 @@ import com.zh.hengyi.application.model.vo.product.admin.ProductSkuFormVO;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuFormVO;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuImageVO;
 import com.zh.hengyi.application.model.vo.product.admin.ProductSpuPageVO;
+import com.zh.hengyi.application.model.vo.product.app.CacheRawResult;
 import com.zh.hengyi.application.model.vo.product.app.ProductSpuPageCardVO;
 //import com.zh.hengyi.admin.service.product.es.EsProductSearchService;
 import com.zh.hengyi.application.service.stock.StockService;
@@ -30,6 +36,7 @@ import com.zh.hengyi.common.utils.convert.ConvertUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,7 +57,10 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     private final ProductImageService productImageService;
     private final ProductCacheUtils productCacheUtils;
     private final StockService stockService;
+    private final ObjectMapper objectMapper;
+
 //    private final EsProductSearchService esProductSearchService;
+
 
     // 后台：商品分页
     @Override
@@ -66,42 +76,89 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
         // 场景2：前端没有传分类ID，不走布隆过滤器，正常查
-        return  productCacheUtils.getTwoLevelCache(productCacheUtils.buildCacheKey(dto), ()->{
-            Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
-            Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
-            IPage<ProductSpu> spuPage = baseMapper.getPageByAdmin(new Page<>(pageNum,pageSize), dto);
-            return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
+        return  productCacheUtils.getTwoLevelCache(
+                productCacheUtils.buildCacheKey(dto), ()->{
+                    Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
+                    Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
+                    IPage<ProductSpu> spuPage = baseMapper.getPageByAdmin(new Page<>(pageNum,pageSize), dto);
+                    return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageVO.class));
         });
     }
 
     // 前台：商品分页
     @Override
     public IPage<ProductSpuPageCardVO> getPageByApp(ProductSpuCardQueryDTO dto) {
-//        // 1 查索引库
-//        List<EsProductDoc> esList = esProductSearchService.searchProduct(dto.getSpuName(), dto.getCategoryId(), dto.getPageNum().intValue(), dto.getPageSize().intValue());
-//
-//        // 2.1 请求参数不为空，查索引库有文档
-//        if (CollectionUtils.isNotEmpty(esList)) {
-//            List<ProductSpuPageCardVO> voList = BeanUtil.copyToList(esList, ProductSpuPageCardVO.class);
-//            Page<ProductSpuPageCardVO> page = new Page<>(dto.getPageNum(), dto.getPageSize());
-//            page.setRecords(voList);
-//            return page;
-//        }
-
-        // 2.2 索引库没有查到 或 请求参数为空，查库
-        // 2.2.1 如果分类不为空，且预热完成，查布隆过滤器
         RBloomFilter<Long> bloom = productCacheUtils.getProductBloom();
         if (productCacheUtils.bloomReady && dto.getCategoryId() != null && !bloom.contains(dto.getCategoryId())) {
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
-        // 2.2.2 否则查库
-        return  productCacheUtils.getTwoLevelCache(productCacheUtils.buildCacheKeyByApp(dto), ()->{
-            Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
-            Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
-            IPage<ProductSpu> spuPage = baseMapper.getPageByApp(new Page<>(pageNum,pageSize), dto);
-            return spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageCardVO.class));
+
+        CacheRawResult<Page<ProductSpuPageCardVO>> rawResult = productCacheUtils.getTwoLevelRaw(
+                productCacheUtils.buildCacheKeyByApp(dto),
+                () -> {
+                    Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
+                    Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
+                    IPage<ProductSpu> spuPage = baseMapper.getPageByApp(new Page<>(pageNum, pageSize), dto);
+                    Page<ProductSpuPageCardVO> resultPage = new Page<>();
+                    resultPage.setCurrent(spuPage.getCurrent());
+                    resultPage.setSize(spuPage.getSize());
+                    resultPage.setTotal(spuPage.getTotal());
+                    resultPage.setPages(spuPage.getPages());
+                    List<ProductSpuPageCardVO> voList = spuPage.convert(e -> BeanUtil.copyProperties(e, ProductSpuPageCardVO.class)).getRecords();
+                    resultPage.setRecords(voList);
+                    return resultPage;
+                });
+
+        Page<ProductSpuPageCardVO> pageVO;
+        if(rawResult.getData() == null){
+            pageVO = null;
+        }else if(rawResult.isFromLocal()){
+            //来自caffeine，直接拿对象
+            pageVO = (Page<ProductSpuPageCardVO>) rawResult.getData();
+        }else{
+            //来自Redis原始JSON字符串，业务层自己jackson反序列化！这里写TypeReference
+            String jsonStr = (String) rawResult.getData();
+            try {
+
+                pageVO = objectMapper.readValue(jsonStr, new com.fasterxml.jackson.core.type.TypeReference<Page<ProductSpuPageCardVO>>(){});
+            } catch (JsonProcessingException e) {
+                //反序列化异常兜底：直接走db逻辑，本次放弃缓存
+                log.error("redis json反序列化异常，降级直接查询db",e);
+                Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
+                Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
+                IPage<ProductSpu> spuPage = baseMapper.getPageByApp(new Page<>(pageNum, pageSize), dto);
+                Page<ProductSpuPageCardVO> resultPage = new Page<>();
+                resultPage.setCurrent(spuPage.getCurrent());
+                resultPage.setSize(spuPage.getSize());
+                resultPage.setTotal(spuPage.getTotal());
+                resultPage.setPages(spuPage.getPages());
+                List<ProductSpuPageCardVO> voList = spuPage.convert(spu -> BeanUtil.copyProperties(spu, ProductSpuPageCardVO.class)).getRecords();
+                resultPage.setRecords(voList);
+                pageVO = resultPage;
+            }
+        }
+
+        if(pageVO == null){
+            return new Page<>();
+        }
+        //深拷贝，防止修改缓存对象，追求性能，caffine存java对象而非json字符串
+        List<ProductSpuPageCardVO> originList = pageVO.getRecords();
+        List<ProductSpuPageCardVO> copyList = originList.stream()
+                .map(item -> {
+                    ProductSpuPageCardVO newVo = new ProductSpuPageCardVO();
+                    BeanUtil.copyProperties(item, newVo);
+                    return newVo;
+                }).collect(Collectors.toList());
+        List<Long> spuIds= copyList.stream().map(ProductSpuPageCardVO::getId).collect(Collectors.toList());
+        Map<Long, String> spuImgMap = productImageService.getMainImageListBySpuIds(spuIds);
+        copyList.forEach(spu -> {
+            String url = spuImgMap.get(spu.getId());
+            spu.setMainImageUrl(url);
         });
+        pageVO.setRecords(copyList);
+        return pageVO;
     }
+
 
     // 查询商品详情
     @Override
@@ -250,7 +307,6 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 1 校验商品存在
         ProductSpu spu = validSpuExist(id);
         Long categoryId = spu.getCategoryId();
-
         // 2 删除商品
         baseMapper.deleteById(id);
         // 3 删除库存
@@ -260,7 +316,6 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 5 先获取商品图片urls，删除商品图片oss
         List<String> imageUrls = productImageService.getImageUrlBySpuId(spu.getId());
         productImageService.deleteBatchImagesByUrl(imageUrls);
-
         // 6 事务提交完成后，再清理缓存（此时数据库数据已删除）
         productCacheUtils.clearCategoryPageCache(categoryId);
 

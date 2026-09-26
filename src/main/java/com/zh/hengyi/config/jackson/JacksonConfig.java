@@ -1,6 +1,8 @@
 package com.zh.hengyi.config.jackson;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,10 @@ public class JacksonConfig {
         ObjectMapper mapper = new ObjectMapper();
 
         mapper.registerModule(new JavaTimeModule()); // 支持LocalDateTime
+
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(IPage.class, new IPageDeserializer());
+        mapper.registerModule(module);
         return mapper;
     }
 }

@@ -8,7 +8,7 @@ import com.zh.hengyi.application.model.dto.authority.role.RoleQueryDTO;
 import com.zh.hengyi.application.model.vo.authority.role.RoleFormVO;
 import com.zh.hengyi.application.model.vo.authority.role.RoleOptionVO;
 import com.zh.hengyi.application.model.vo.authority.role.RolePageVO;
-import com.zh.hengyi.application.service.authority.RoleService;
+import com.zh.hengyi.application.service.auth.RoleService;
 import com.zh.hengyi.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

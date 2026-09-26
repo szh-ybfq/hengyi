@@ -1,14 +1,18 @@
 package com.zh.hengyi.common.utils.cache.product;
 
+import cn.hutool.core.lang.TypeReference;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.zh.hengyi.application.mapper.product.ProductCategoryMapper;
 import com.zh.hengyi.application.model.dto.product.admin.ProductSpuQueryDTO;
 import com.zh.hengyi.application.model.dto.product.app.ProductSpuCardQueryDTO;
 import com.zh.hengyi.application.model.entity.product.ProductCategory;
+import com.zh.hengyi.application.model.vo.product.app.CacheRawResult;
 import com.zh.hengyi.common.enums.goods.GoodsStatusEnum;
 import com.zh.hengyi.common.exception.BusinessException;
 import com.zh.hengyi.common.result.ResultCode;
@@ -19,6 +23,7 @@ import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.scheduling.annotation.Async;
@@ -52,7 +57,8 @@ public class ProductCacheUtils {
 
     @Resource
     private RabbitTemplate rabbitTemplate;
-
+    @Autowired
+    private ObjectMapper objectMapper;
 
     //统一管理常量名
     // Caffine 本地缓存分组名
@@ -168,8 +174,9 @@ public class ProductCacheUtils {
             String redisStr = redisVal.toString();
             // 2.1 Redis有数据，直接返回，并回填本地缓存caffeine，下次不用再查redis
             T pageData = (T) jsonToObj(redisStr, Page.class);// 反序列化为目标分页对象，返回值是 Page 固定类型，但方法泛型是 T，编译器无法判定 Page 一定匹配 T，因此报类型不匹配错误。
-            caffeineCache.put(cacheKey, pageData);
-            log.info("查询二级缓存redis成功,并放入本地缓存Caffeine成功");
+
+            // caffeineCache.put(cacheKey, pageData); //采用方案1 追求极致性能，一级缓存存java对象，独立缓存，只来自数据库，禁止二级缓存回填
+            log.info("查询二级缓存Redis成功");
             return pageData;
         }
 
@@ -212,8 +219,8 @@ public class ProductCacheUtils {
                 }
                 String doubleCheckString = doubleCheck.toString();
                 T pageData = (T) jsonToObj(doubleCheckString, Page.class);
-                caffeineCache.put(cacheKey, pageData);
-                log.info("双重校验，加锁后再次查Redis获取缓存数据成功，并放入本地缓存Caffeine成功");
+                // caffeineCache.put(cacheKey, pageData); //采用方案1 追求极致性能，一级缓存存java对象，独立缓存，只来自数据库，禁止二级缓存回填
+                log.info("双重校验，加锁后再次查询二级缓存Redis成功");
                 return (T) pageData;
             }
 
@@ -256,9 +263,7 @@ public class ProductCacheUtils {
             long randomTtl = BASE_TTL + RandomTtl.nextLong(60 * 60L);
             String pageJson = objToJson(dbData);
             redissonClient.getBucket(cacheKey).set(pageJson, randomTtl, TimeUnit.SECONDS);
-
             caffeineCache.put(cacheKey, dbData);
-
             log.info("查询数据库成功，写入一二级缓存成功");
             return dbData;
 
@@ -272,6 +277,118 @@ public class ProductCacheUtils {
             }
         }
     }
+
+    /**
+     * 二级缓存查询：带TypeReference解决泛型反序列化丢失
+     */
+    /**
+     * 二级缓存【原始结果版本】
+     * 特点：Redis不做反序列化，原样透出json字符串交给业务自己解析；Caffeine返回完整对象
+     * @param cacheKey key
+     * @param dbQueryFunc db查询
+     * @return CacheRawResult
+     */
+    public <T> CacheRawResult<T> getTwoLevelRaw(String cacheKey, Supplier<T> dbQueryFunc) {
+        // 查询caffeine
+        Cache<Object, Object> caffeineCache = (Cache<Object, Object>) caffeineCacheManager.getCache(CACHE_NAME).getNativeCache();
+        Object localVal = caffeineCache.getIfPresent(cacheKey);
+        if (localVal != null) {
+            if (isEmptyMarker(localVal)) {
+                log.info("本地缓存Caffeine命中空值标记");
+                CacheRawResult<T> res = new CacheRawResult<>();
+                res.setFromLocal(true);
+                res.setData(null);
+                return res;
+            }
+            log.info("查询一级缓存Caffeine成功");
+            CacheRawResult<T> res = new CacheRawResult<>();
+            res.setFromLocal(true);
+            res.setData(localVal);
+            return res;
+        }
+
+        // 查询Redis
+        Object redisVal = redissonClient.getBucket(cacheKey).get();
+        if (redisVal != null) {
+            if (isEmptyMarker(redisVal)) {
+                log.info("redis命中空标记，回填caffeine");
+                caffeineCache.put(cacheKey, EmptyCacheMarker.INSTANCE);
+                CacheRawResult<T> res = new CacheRawResult<>();
+                res.setFromLocal(true);
+                res.setData(null);
+                return res;
+            }
+            // IPage关键点：redis拿到值，原样返回json字符串，工具层不做任何jsonToObj解析！
+            String redisStr = redisVal.toString();
+            log.info("命中Redis缓存，回传原始json字符串，交由业务层反序列化");
+            CacheRawResult<T> res = new CacheRawResult<>();
+            res.setFromLocal(false);
+            res.setData(redisStr);
+            return res;
+        }
+
+        // Redis没有数据，加锁查DB
+        RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX + cacheKey);
+        boolean getLock = false;
+        try {
+            //双重校验
+            Object doubleCheck = redissonClient.getBucket(cacheKey).get();
+            if (doubleCheck != null) {
+                if (isEmptyMarker(doubleCheck)) {
+                    log.info("双重校验：redis空标记");
+                    caffeineCache.put(cacheKey, EmptyCacheMarker.INSTANCE);
+                    CacheRawResult<T> res = new CacheRawResult<>();
+                    res.setFromLocal(true);
+                    res.setData(null);
+                    return res;
+                }
+                String doubleStr = doubleCheck.toString();
+                log.info("双重校验命中redis，回传原始json，交由业务层反序列化");
+                CacheRawResult<T> res = new CacheRawResult<>();
+                res.setFromLocal(false);
+                res.setData(doubleStr);
+                return res;
+            }
+
+            T dbData = dbQueryFunc.get();
+            boolean emptyData;
+            if (dbData instanceof Collection) {
+                emptyData = CollectionUtils.isEmpty((Collection<?>) dbData);
+            } else {
+                emptyData = dbData == null;
+            }
+            if (emptyData) {
+                String emptyJson = objToJson(EmptyCacheMarker.INSTANCE);
+                long nullRandomTtl = CACHE_NULL_TTL + RandomTtl.nextLong(60 * 60L);
+                redissonClient.getBucket(cacheKey).set(emptyJson, nullRandomTtl, TimeUnit.SECONDS);
+                caffeineCache.put(cacheKey, EmptyCacheMarker.INSTANCE);
+                log.info("db查询为空，写入空标记");
+                CacheRawResult<T> res = new CacheRawResult<>();
+                res.setFromLocal(true);
+                res.setData(null);
+                return res;
+            }
+            //写一二级缓存
+            long randomTtl = BASE_TTL + RandomTtl.nextLong(60 * 60L);
+            String pageJson = objToJson(dbData);
+            redissonClient.getBucket(cacheKey).set(pageJson, randomTtl, TimeUnit.SECONDS);
+            caffeineCache.put(cacheKey, dbData);
+            log.info("db查询成功写入一二级缓存");
+            CacheRawResult<T> res = new CacheRawResult<>();
+            res.setFromLocal(true);
+            res.setData(dbData);
+            return res;
+        } catch (BusinessException lockException) {
+            throw lockException;
+        } catch (Exception e) {
+            throw new BusinessException(ResultCode.CACHE_QUERY_EMPTY);
+        } finally {
+            if (getLock && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
 
     /**
      * 1、清理单个缓存值
@@ -422,9 +539,9 @@ public class ProductCacheUtils {
     }
 
     // 对象转JSON字符串
-    private String objToJson(Object obj) {
-        return JSONUtil.toJsonStr(obj);
-    }
+//    private String objToJson(Object obj) {
+//        return JSONUtil.toJsonStr(obj);
+//    }
 
     // JSON字符串转回目标泛型对象
     private <T> T jsonToObj(String json, Class<T> clazz) {
@@ -433,6 +550,20 @@ public class ProductCacheUtils {
         }
         return JSONUtil.toBean(json, clazz);
     }
+//
+//    private <T> T jsonToObj(String str, TypeReference<T> typeRef) {
+//        //第三个参数true代表忽略转换错误
+//        return JSONUtil.toBean(str, typeRef, true);
+//    }
+
+
+    /**
+     * 对象转json字符串
+     */
+    private String objToJson(Object obj) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(obj);
+    }
+
 
     // 空值对象
     public static class EmptyCacheMarker implements Serializable {
