@@ -10,7 +10,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
-import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.CACHE_NAME;
+import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.*;
 
 @Component
 @Slf4j
@@ -41,14 +41,15 @@ public class CacheDelayDeleteConsumer {
             // 删除Redis二级缓存
             redissonClient.getBucket(cacheKey).delete();
             // 删除本地Caffeine一级缓存
-            caffeineCacheManager.getCache(CACHE_NAME).evict(cacheKey);
+            caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_ADMIN).evict(cacheKey);
+            caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_APP).evict(cacheKey);
             log.info("延迟删除单缓存key成功，key:{}", cacheKey);
             return;
         }
 
         // 场景2：分类分页批量清理缓存
         if ("categoryPage".equals(type) && categoryId != null) {
-            // 这批量清理该分类下所有分页缓存的逻辑
+            // 批量清理该分类下所有分页缓存的逻辑
             productCacheUtil.clearCategoryPageCache(categoryId);
             log.info("延迟清理该分类下分页缓存，categoryId:{}", categoryId);
         }

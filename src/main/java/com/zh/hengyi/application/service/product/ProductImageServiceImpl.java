@@ -98,6 +98,7 @@ public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, Pro
     /**
      * 新增商品提交时批量保存图片
      */
+    // todo:存在小bug ，这个表其实应该是spu和sku共存更好，因为sku规格图片对应的是skuId而非spuId，现在存的是后者
     @Transactional(rollbackFor = Exception.class)
     @Override
     public void batchSave(ProductSpuImageDTO dto) {
@@ -214,9 +215,9 @@ public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, Pro
         // 1 todo: 图片ids参数校验
 
         // 1 参数校验
-        if (CollUtil.isEmpty(imgUrls)) {
-            throw new BusinessException(ResultCode.IMG_HTTP_NOT_EXIST);
-        }
+//        if (CollUtil.isEmpty(imgUrls)) {
+//            throw new BusinessException(ResultCode.IMG_HTTP_NOT_EXIST);
+//        }
         // 2 循环删除每张图片
         imgUrls.forEach(imgUrl -> {
            deleteSingleImageByUrl(imgUrl);
@@ -278,6 +279,20 @@ public class ProductImageServiceImpl extends ServiceImpl<ProductImageMapper, Pro
         this.saveBatch(mainImages);
         this.saveBatch(detailImages);
         this.saveBatch(paramImages);
+
+        if (CollUtil.isNotEmpty(dto.getSkuImgList())) {
+            List<ProductImage> skuImages = dto.getSkuImgList().stream()
+                    .map(url -> {
+                        ProductImage paramImage = new ProductImage();
+                        paramImage.setSpuId(dto.getId());
+                        paramImage.setImageType(GoodsImageEnum.GOODS_SKUS.getType());
+                        paramImage.setImageUrl(url);
+                        return paramImage;
+                    })
+                    .collect(Collectors.toList());
+            this.saveBatch(skuImages);
+        }
+
     }
 }
 

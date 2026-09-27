@@ -76,7 +76,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
         // 场景2：前端没有传分类ID，不走布隆过滤器，正常查
-        return  productCacheUtils.getTwoLevelCache(
+        return  productCacheUtils.getTwoLevelCacheByAdmin(
                 productCacheUtils.buildCacheKey(dto), ()->{
                     Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
                     Long pageSize = dto.getPageSize() == null ? 10 : dto.getPageSize();
@@ -93,7 +93,7 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             return new Page<>(dto.getPageNum(), dto.getPageSize(),0);
         }
 
-        CacheRawResult<Page<ProductSpuPageCardVO>> rawResult = productCacheUtils.getTwoLevelRaw(
+        CacheRawResult<Page<ProductSpuPageCardVO>> rawResult = productCacheUtils.getTwoLevelCacheByApp(
                 productCacheUtils.buildCacheKeyByApp(dto),
                 () -> {
                     Long pageNum = dto.getPageNum() == null ? 1 : dto.getPageNum();
@@ -160,14 +160,14 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
     }
 
 
-    // 查询商品详情
+    // 查询商品 详情
     @Override
     public ProductSpuFormVO getSpuInfo(Long id) {
         // 1、校验 spu是否存在
         ProductSpu spu = validSpuExist(id);
-
-        // 2、将spu、skuList转换VO，再组装返回
         ProductSpuFormVO vo = BeanUtil.copyProperties(spu, ProductSpuFormVO.class);
+
+        // 2、查询sku
         List<ProductSku> skus = skuMapper.selectListBySpuId(id);
 
         // 3、1 skus非空
@@ -191,6 +191,13 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         vo.setMainImgList(imageList.getMainImgList());
         vo.setDetailImgList(imageList.getDetailImgList());
         vo.setParamImgList(imageList.getParamImgList());
+        // 判空校验一定加上 防止空指针异常
+        if (CollUtil.isNotEmpty(imageList.getSkuImgList()) ) {
+            for (int i = 0; i < imageList.getSkuImgList().size(); i++) {
+                // todo:注意这里问题巨大强依赖顺序，如果顺序错乱，则图片全错，后期考虑图片加skuId字段
+                vo.getSkuList().get(i).setSkuImgUrl(imageList.getSkuImgList().get(i));
+            }
+        }
 
         return vo;
     }
@@ -222,6 +229,11 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
         // 5 批量保存图片
         ProductSpuImageDTO prodSpuImageDTO = BeanUtil.copyProperties(dto, ProductSpuImageDTO.class);
         prodSpuImageDTO.setId(spu.getId());
+        List<String> list = new ArrayList<>();
+        dto.getSkuList().forEach(sku -> {
+            list.add(sku.getSkuImgUrl());
+        });
+        prodSpuImageDTO.setSkuImgList(list);
         productImageService.batchSave(prodSpuImageDTO);
 
         // 6 删除商品该分类下所有分页缓存
@@ -264,9 +276,16 @@ public class ProductSpuServiceImpl extends ServiceImpl<ProductSpuMapper, Product
             skuStockMap.put(skuList.get(i).getId(), dto.getSkuList().get(i).getStock());
         }
         stockService.batchCreateStock(skuStockMap);
+        log.info("新增sku、入库、写入库存流水成功");
 
         // 7、 批量保存图片
-        productImageService.batchUpadte(BeanUtil.copyProperties(dto, ProductSpuImageDTO.class));
+        ProductSpuImageDTO prodSpuImageDTO = BeanUtil.copyProperties(dto, ProductSpuImageDTO.class);
+        List<String> list = new ArrayList<>();
+        dto.getSkuList().forEach(sku -> {
+            list.add(sku.getSkuImgUrl());
+        });
+        prodSpuImageDTO.setSkuImgList(list);
+        productImageService.batchUpadte(prodSpuImageDTO);
 
         // 8、 💎💎 根据具体修改情况，采用不同延迟双删策略
         // 1). 判断是否修改分页展示字段：名称/价格/上下架

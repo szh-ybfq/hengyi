@@ -31,6 +31,9 @@ public interface ProductImageMapper extends BaseMapper<ProductImage> {
         vo.setParamImgList(productImages.stream()
                 .filter(i->i.getImageType()== GoodsImageEnum.GOODS_PARAMS.getType())
                 .map(ProductImage::getImageUrl).toList());
+        vo.setSkuImgList(productImages.stream()
+                .filter(i->i.getImageType()== GoodsImageEnum.GOODS_SKUS.getType())
+                .map(ProductImage::getImageUrl).toList());
         return vo;
     };
 

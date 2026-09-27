@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.CACHE_NAME;
+import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.CACHE_PRODUCT_PAGE_ADMIN;
+import static com.zh.hengyi.common.utils.cache.product.ProductCacheUtils.CACHE_PRODUCT_PAGE_APP;
 
 @Configuration
 public class CaffeineCacheConfig {
@@ -33,8 +33,9 @@ public class CaffeineCacheConfig {
                 .recordStats()
         );
 
-        // 缓存名称："product_page"
-        cacheManager.setCacheNames(List.of(CACHE_NAME));
+        // 缓存名称："product_page_amin" "product_page_app"
+        cacheManager.setCacheNames(List.of(CACHE_PRODUCT_PAGE_ADMIN));
+        cacheManager.setCacheNames(List.of(CACHE_PRODUCT_PAGE_APP));
         return cacheManager;
     }
 }

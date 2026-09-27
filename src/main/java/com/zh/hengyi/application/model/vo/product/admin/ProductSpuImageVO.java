@@ -11,4 +11,5 @@ public class ProductSpuImageVO {
     private List<String> mainImgList;
     private List<String> detailImgList;
     private List<String> paramImgList;
+    private List<String> skuImgList;
 }

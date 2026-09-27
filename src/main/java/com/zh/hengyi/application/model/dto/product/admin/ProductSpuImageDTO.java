@@ -21,4 +21,8 @@ public class ProductSpuImageDTO {
 
     @Schema(description = "spu参数图片集合")
     private List<String> paramImgList;
+
+    @Schema(description = "sku规格图片集合")
+    private List<String> skuImgList;
+
 }

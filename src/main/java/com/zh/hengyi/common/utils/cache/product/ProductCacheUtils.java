@@ -62,12 +62,15 @@ public class ProductCacheUtils {
 
     //统一管理常量名
     // Caffine 本地缓存分组名
-    public static final String CACHE_NAME = "product_page";
-
+    //public static final String CACHE_NAME = "product_amin_page";
+    public static final String CACHE_PRODUCT_PAGE_ADMIN = "product_page_amin";
+    public static final String CACHE_PRODUCT_PAGE_APP= "product_page_app";
     // redis 商品缓存key前缀
-    public static final String CACHE_KEY_PREFIX = "product:page:";
+    public static final String CACHE_PRODUCT_KEY_PREFIX_ADMIN = "product:page:admin:";
+    public static final String CACHE_PRODUCT_KEY_PREFIX_APP = "product:page:app:";
     // redission 分布式锁前缀
-    public static final String LOCK_KEY_PREFIX = "lock:product:";
+    public static final String LOCK_KEY_PREFIX_ADMIN = "lock:product:";
+    public static final String LOCK_KEY_PREFIX_APP = "lock:product:";
     // rabbitmq 消息名
     public static final String MQ_MESSAGE_NAME = "cacheKey";
 
@@ -95,28 +98,6 @@ public class ProductCacheUtils {
     // 缓存预热开关（布隆缓存全部预热完成，才会开启）
     public volatile boolean bloomReady = false;    //volatile：保证可见性（一个线程修改变量，其他线程立刻读到最新值）
 
-    // 启动线程执行时，预热布隆过滤器
-    /* @PostConstruct
-    public void initBloom() {
-        RBloomFilter<Long> bloom = getProductBloom();
-        new Thread(() -> {
-            try {
-                // 已初始化会直接跳过。预估10万元素，误判率1%（已存在则不会重复初始化）
-                bloom.tryInit(BLOOM_EXPECT_NUM, BLOOM_FALSE_RATE);
-                // 全量查询数据库所有分类id，批量加到布隆
-                List<Long> categoryIds = productCategoryMapper.selectList(null).stream()
-                        .map(ProductCategory::getId)
-                        .collect(Collectors.toList());
-                categoryIds.forEach(bloom::add);
-                bloomReady = true;
-                log.info("商品分类布隆预热完成，加载分类数量：{}", categoryIds.size());
-            } catch (Exception e) {
-                log.error("分类布隆过滤器预热失败", e);
-                bloomReady = false;
-            }
-        }).start();
-    }
-*/
     // 初始化布隆过滤器
     @Async
     public void initBloom() {
@@ -148,9 +129,9 @@ public class ProductCacheUtils {
      * @param dbQueryFunc 数据库查询逻辑（函数式）
      * @return 分页商品数据
      */
-    public <T> T getTwoLevelCache(String cacheKey,  Supplier<T> dbQueryFunc) {
+    public <T> T getTwoLevelCacheByAdmin(String cacheKey,  Supplier<T> dbQueryFunc) {
         // 1. 查询本地缓存Caffeine
-        Cache<Object, Object> caffeineCache = (Cache<Object, Object>) caffeineCacheManager.getCache(CACHE_NAME).getNativeCache();
+        Cache<Object, Object> caffeineCache = (Cache<Object, Object>) caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_ADMIN).getNativeCache();
         Object localVal = caffeineCache.getIfPresent(cacheKey);//getIfPresent：不存在返回 null，不会自动加载
         if (localVal != null) {
             // 判断是空缓存标记
@@ -181,7 +162,7 @@ public class ProductCacheUtils {
         }
 
         // 2.2 💎 Redis无数据，加分布式锁 防止缓存击穿（是单个缓存过期（一个，热点商品），但是几百个请求刚并发 同时打到数据库），让仅1个请求查DB
-        RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX+cacheKey);
+        RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX_ADMIN+cacheKey);
         boolean getLock = false;
 //        int retryTimes = 5; // 最大重试次数
 //        long sleepMs = 100L; // 每次重试休眠毫秒
@@ -288,9 +269,9 @@ public class ProductCacheUtils {
      * @param dbQueryFunc db查询
      * @return CacheRawResult
      */
-    public <T> CacheRawResult<T> getTwoLevelRaw(String cacheKey, Supplier<T> dbQueryFunc) {
+    public <T> CacheRawResult<T> getTwoLevelCacheByApp(String cacheKey, Supplier<T> dbQueryFunc) {
         // 查询caffeine
-        Cache<Object, Object> caffeineCache = (Cache<Object, Object>) caffeineCacheManager.getCache(CACHE_NAME).getNativeCache();
+        Cache<Object, Object> caffeineCache = (Cache<Object, Object>) caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_APP).getNativeCache();
         Object localVal = caffeineCache.getIfPresent(cacheKey);
         if (localVal != null) {
             if (isEmptyMarker(localVal)) {
@@ -328,7 +309,7 @@ public class ProductCacheUtils {
         }
 
         // Redis没有数据，加锁查DB
-        RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX + cacheKey);
+        RLock lock = redissonClient.getLock(LOCK_KEY_PREFIX_APP + cacheKey);
         boolean getLock = false;
         try {
             //双重校验
@@ -395,7 +376,8 @@ public class ProductCacheUtils {
      */
     public void clearSingleCache(String cacheKey) {
         // 1. 立即删除本地缓存
-        caffeineCacheManager.getCache(CACHE_NAME).evict(cacheKey);
+        caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_ADMIN).evict(cacheKey);
+        caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_APP).evict(cacheKey);
         // 2. 立即删除Redis缓存
         redissonClient.getBucket(cacheKey).delete();
         // 3. 发送延迟删除消息给rabmq队列，500ms后二次删除缓存，解决读写并发脏数据
@@ -408,17 +390,28 @@ public class ProductCacheUtils {
      */
     public void clearCategoryPageCache(Long categoryId) {
         // 1、Caffeine本地缓存
-        CaffeineCache cache = (CaffeineCache) caffeineCacheManager.getCache(CACHE_NAME);
+        CaffeineCache cache = (CaffeineCache) caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_ADMIN);
+        CaffeineCache cacheApp = (CaffeineCache) caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_APP);
+        // 清空本地全部商品缓存
         cache.invalidate();
+        cacheApp.invalidate();
         // 强制同步清理所有待删除条目，主线程阻塞至清理完成,完成后再执行后面线程
         cache.getNativeCache().cleanUp();
+        cacheApp.getNativeCache().cleanUp();
 
         // 2、Redis：删除商品该分类下所有分页缓存，
         // 💎 最重要坑：原来的不带分类id查询（例如只分页查、点数字、名称查）还残留脏数据，因此必须清除
-        String pagePattern = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
-        String pagePatternIndex = CACHE_KEY_PREFIX + "*:*:*:" + 0 + ":*";
+        String pagePattern = CACHE_PRODUCT_KEY_PREFIX_ADMIN + "*:*:*:" + categoryId + ":*";
+        String pagePatternIndex = CACHE_PRODUCT_KEY_PREFIX_ADMIN + "*:*:*:" + 0 + ":*";
+
+        String pagePatternApp = CACHE_PRODUCT_KEY_PREFIX_APP + "*:*:*:" + categoryId + ":*";
+        String pagePatternIndexApp = CACHE_PRODUCT_KEY_PREFIX_APP + "*:*:*:" + 0 + ":*";
+
         batchDelRedisByPattern(pagePattern);
         batchDelRedisByPattern(pagePatternIndex);
+
+        batchDelRedisByPattern(pagePatternApp);
+        batchDelRedisByPattern(pagePatternIndexApp);
 
         // 3、发送500ms延迟批量清理消息兜底
         sendDelayDeleteMsg("category_page", null, categoryId, DELAY_DELETE_TIME);
@@ -432,15 +425,24 @@ public class ProductCacheUtils {
     public void clearCategoryAllCache(Long categoryId) {
         // TODO：❌️ 这里之后根据缓存键设计情况，清理该分类下所有类型缓存, 这里先仅仅删除商品分页缓存，所以不启用
         // 1、清空本地全部商品缓存
-        caffeineCacheManager.getCache(CACHE_NAME).invalidate();
+        caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_ADMIN).invalidate();
+        caffeineCacheManager.getCache(CACHE_PRODUCT_PAGE_APP).invalidate();
+
         // 2、Redis匹配该分类所有key删除
         // String CACHE_KEY_PREFIX1 = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
         // String CACHE_KEY_PREFIX2 = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
         // String CACHE_KEY_PREFIX3 = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
-        String allPattern = CACHE_KEY_PREFIX + "*:*:*:" + categoryId + ":*";
-        String pagePatternIndex = CACHE_KEY_PREFIX + "*:*:*:" + 0 + ":*";
-        batchDelRedisByPattern(allPattern);
+        String pagePattern = CACHE_PRODUCT_KEY_PREFIX_ADMIN + "*:*:*:" + categoryId + ":*";
+        String pagePatternIndex = CACHE_PRODUCT_KEY_PREFIX_ADMIN + "*:*:*:" + 0 + ":*";
+
+        String pagePatternApp = CACHE_PRODUCT_KEY_PREFIX_APP + "*:*:*:" + categoryId + ":*";
+        String pagePatternIndexApp = CACHE_PRODUCT_KEY_PREFIX_APP + "*:*:*:" + 0 + ":*";
+
+        batchDelRedisByPattern(pagePattern);
         batchDelRedisByPattern(pagePatternIndex);
+
+        batchDelRedisByPattern(pagePatternApp);
+        batchDelRedisByPattern(pagePatternIndexApp);
 
         // 3、延迟二次全分类清理
         sendDelayDeleteMsg("category_all_type", null, categoryId, DELAY_DELETE_TIME);
@@ -507,7 +509,7 @@ public class ProductCacheUtils {
         }
         String safeSpuName = URLEncoder.encode(rawName, StandardCharsets.UTF_8);
 
-        return CACHE_KEY_PREFIX + pageNum + ":"
+        return CACHE_PRODUCT_KEY_PREFIX_ADMIN + pageNum + ":"
                 + pageSize + ":"
                 + safeSpuName + ":"
                 + categoryId + ":"
@@ -531,7 +533,7 @@ public class ProductCacheUtils {
         }
         String safeSpuName = URLEncoder.encode(rawName, StandardCharsets.UTF_8);
 
-        return CACHE_KEY_PREFIX + pageNum + ":"
+        return CACHE_PRODUCT_KEY_PREFIX_APP + pageNum + ":"
                 + pageSize + ":"
                 + safeSpuName + ":"
                 + categoryId + ":"

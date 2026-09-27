@@ -12,8 +12,9 @@ public class ProductSkuAddDTO {
     @Schema(description = "规格json字符串")
     private String skuSpec;
 
+    @NotNull(message = "商品规格图片不能为空")
     @Schema(description = "sku规格图,未配置回退显示主图")
-    private String skuImg;
+    private String skuImgUrl;
 
     @NotNull(message = "sku售价不能为空")
     @Schema(description = "sku售价")
